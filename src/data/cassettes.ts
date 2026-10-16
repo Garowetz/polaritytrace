@@ -1,0 +1,242 @@
+import { identity } from '../engine/maps';
+import type { CassetteDef, FrontPort } from '../engine/types';
+
+/**
+ * Build front ports from an LC fibre order: lc[j] is the MPO position wired to
+ * LC fibre j + 1. LC odd fibre = Position A (reference §3-1 engine convention),
+ * so port p = (A: LC 2p−1, B: LC 2p).
+ */
+export function fromLcOrder(lc: readonly number[]): FrontPort[] {
+  const ports: FrontPort[] = [];
+  for (let p = 1; p * 2 <= lc.length; p++) ports.push({ port: p, A: lc[2 * p - 2], B: lc[2 * p - 1] });
+  return ports;
+}
+
+/** Port p = (MPO a[p−1], MPO b[p−1]). */
+function fromPairs(a: readonly number[], b: readonly number[]): FrontPort[] {
+  return a.map((A, i) => ({ port: i + 1, A, B: b[i] }));
+}
+
+const ALL_12 = identity(12);
+const BASE8 = [1, 2, 3, 4, 9, 10, 11, 12] as const;
+
+export const LC_ORDER = {
+  straight: identity(12),
+  U1: [1, 12, 2, 11, 3, 10, 4, 9, 5, 8, 6, 7],
+  U2: [12, 1, 11, 2, 10, 3, 9, 4, 8, 5, 7, 6],
+  B2: [11, 12, 9, 10, 7, 8, 5, 6, 3, 4, 1, 2],
+  BN: [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1],
+  AF: [2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 12, 11],
+} as const;
+
+export const cassettes: readonly CassetteDef[] = [
+  {
+    kind: 'cassette',
+    id: 'cas-a-12',
+    label: 'Type A cassette',
+    blurb: 'Standard cassette: MPO position n goes to LC fibre n. Key-up/key-down rear adapter.',
+    learnMore: 'Used at both ends of Method A (Type A trunk) and Method C (Type C trunk).',
+    footprint: 'MPO-12',
+    positions: 12,
+    litPositions: ALL_12,
+    transition: 'straight',
+    rearAdapter: 'A',
+    frontMap: fromLcOrder(LC_ORDER.straight),
+    source: 'polarity-reference §4.1',
+    verified: true,
+    status: 'VERIFIED',
+  },
+  {
+    kind: 'cassette',
+    id: 'cas-b-12',
+    label: 'Method B cassette',
+    blurb: 'Straight transition with a key-up/key-up rear adapter. One end is mounted upside down.',
+    learnMore:
+      'TIA Method B uses the same cassette at both ends with one turned over. ' +
+      'Key-up/key-up adapters cannot be used with APC connectors, so Method B is UPC only.',
+    footprint: 'MPO-12',
+    positions: 12,
+    litPositions: ALL_12,
+    transition: 'straight',
+    rearAdapter: 'B',
+    frontMap: fromLcOrder(LC_ORDER.straight),
+    source: 'polarity-reference §4.1, §3-2',
+    verified: true,
+    status: 'VERIFIED',
+  },
+  {
+    kind: 'cassette',
+    id: 'cas-b2-12',
+    label: 'Method B far-end cassette (B2)',
+    blurb: 'Reverses the ports but keeps each pair in order: LC 1–12 = MPO 11,12,9,10 … 1,2.',
+    learnMore:
+      'Paired with a standard Method B cassette (B1) at the near end, so port 1 arrives at port 1 ' +
+      'without turning a cassette over. Only one published source gives the numbers.',
+    footprint: 'MPO-12',
+    positions: 12,
+    litPositions: ALL_12,
+    transition: 'B2',
+    rearAdapter: 'B',
+    frontMap: fromLcOrder(LC_ORDER.B2),
+    source: 'polarity-reference §3-2 (one competitor numeric source)',
+    verified: false,
+    status: 'PARTIAL',
+  },
+  {
+    kind: 'cassette',
+    id: 'cas-bn-12',
+    label: 'Plain-reversal cassette',
+    blurb: 'LC 1–12 = MPO 12 … 1. Works as a far-end Method B cassette only with B-A front adapters.',
+    footprint: 'MPO-12',
+    positions: 12,
+    litPositions: ALL_12,
+    transition: 'BN',
+    rearAdapter: 'B',
+    frontMap: fromLcOrder(LC_ORDER.BN),
+    source: 'polarity-reference §3-2, §4.1 (competitor drawing)',
+    verified: false,
+    status: 'PARTIAL',
+  },
+  {
+    kind: 'cassette',
+    id: 'cas-u1-12',
+    label: 'Universal cassette (U1)',
+    blurb: 'Pairs outer fibres (1+12, 2+11 …) so the same cassette and A-to-B cords work at both ends.',
+    learnMore:
+      'TIA Type-U1 transition: MPO 1,12,2,11,3,10,4,9,5,8,6,7 → LC 1–12. Used with a Type B trunk, ' +
+      'a key-up/key-down rear adapter and standard A-to-B cords at both ends. Works on APC.',
+    footprint: 'MPO-12',
+    positions: 12,
+    litPositions: ALL_12,
+    transition: 'U1',
+    rearAdapter: 'A',
+    frontMap: fromLcOrder(LC_ORDER.U1),
+    source: 'polarity-reference §4.3',
+    verified: true,
+    status: 'VERIFIED',
+  },
+  {
+    kind: 'cassette',
+    id: 'cas-u2-12',
+    label: 'Universal cassette (U2)',
+    blurb: 'Like U1 but mirror-paired (12+1, 11+2 …) with a key-up/key-up rear adapter.',
+    learnMore:
+      'Through a trunk it behaves exactly like U1. Its breakout advantage applies only when its MPO ' +
+      'plugs straight into the optic. Key-up/key-up adapter, so UPC only.',
+    footprint: 'MPO-12',
+    positions: 12,
+    litPositions: ALL_12,
+    transition: 'U2',
+    rearAdapter: 'B',
+    frontMap: fromLcOrder(LC_ORDER.U2),
+    source: 'polarity-reference §4.4, §3-1',
+    verified: true,
+    status: 'VERIFIED',
+  },
+  {
+    kind: 'cassette',
+    id: 'cas-af-12',
+    label: 'Pair-flipped cassette (AF)',
+    blurb: 'Vendor variant: MPO 2,1,4,3 … → LC 1–12. Lets Method A use A-to-B cords at both ends.',
+    footprint: 'MPO-12',
+    positions: 12,
+    litPositions: ALL_12,
+    transition: 'AF',
+    rearAdapter: 'A',
+    frontMap: fromLcOrder(LC_ORDER.AF),
+    source: 'polarity-reference §4.2 (competitor only)',
+    verified: false,
+    status: 'PARTIAL',
+  },
+  {
+    kind: 'cassette',
+    id: 'cas-u1-8',
+    label: 'Universal cassette (U1), 8F',
+    blurb: 'Base-8 universal: 4 ports, MPO 1,12,2,11,3,10,4,9 → LC 1–8.',
+    footprint: 'MPO-12',
+    positions: 12,
+    litPositions: BASE8,
+    transition: 'U1',
+    rearAdapter: 'A',
+    frontMap: fromLcOrder([1, 12, 2, 11, 3, 10, 4, 9]),
+    source: 'polarity-reference §4.3 variants (competitor only)',
+    verified: false,
+    status: 'PARTIAL',
+  },
+  {
+    kind: 'cassette',
+    id: 'cas-u1-16',
+    label: 'Universal cassette (U1), 16F',
+    blurb: 'One MPO-16, 8 ports: port p = MPO p and 17−p. Derived, not a published TIA transition.',
+    footprint: 'MPO-16',
+    positions: 16,
+    litPositions: identity(16),
+    transition: 'U1',
+    rearAdapter: 'A',
+    frontMap: fromPairs([1, 2, 3, 4, 5, 6, 7, 8], [16, 15, 14, 13, 12, 11, 10, 9]),
+    source: 'polarity-reference §4.3a(a) (derived)',
+    verified: false,
+    status: 'UNVERIFIED',
+  },
+  {
+    kind: 'cassette',
+    id: 'cas-u1-24',
+    label: 'Universal cassette (U1), 24F',
+    blurb: 'One MPO-24, 12 ports: port p = MPO p and 25−p. Derived, not a published TIA transition.',
+    footprint: 'MPO-24',
+    positions: 24,
+    litPositions: identity(24),
+    transition: 'U1',
+    rearAdapter: 'A',
+    frontMap: fromPairs(identity(12), [24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13]),
+    source: 'polarity-reference §4.3a(b) (derived)',
+    verified: false,
+    status: 'UNVERIFIED',
+  },
+  {
+    kind: 'cassette',
+    id: 'cas-u1-24-16f',
+    label: 'Universal cassette (U1), MPO-24 · 16F',
+    blurb: '8 ports on a 24-position MPO with 16 lit fibres. Derived, not a published TIA transition.',
+    footprint: 'MPO-24',
+    positions: 24,
+    litPositions: [1, 2, 3, 4, 9, 10, 11, 12, 13, 14, 15, 16, 21, 22, 23, 24],
+    transition: 'U1',
+    rearAdapter: 'A',
+    frontMap: fromPairs([1, 2, 3, 4, 9, 10, 11, 12], [24, 23, 22, 21, 16, 15, 14, 13]),
+    source: 'polarity-reference §4.3a(c) (derived)',
+    verified: false,
+    status: 'UNVERIFIED',
+  },
+  {
+    kind: 'cassette',
+    id: 'cas-a-24',
+    label: 'Type A cassette, 24F',
+    blurb: 'One MPO-24, 12 ports: MPO n → LC fibre n. Needs a matched far end; renumbers ports.',
+    footprint: 'MPO-24',
+    positions: 24,
+    litPositions: identity(24),
+    transition: 'straight',
+    rearAdapter: 'A',
+    frontMap: fromLcOrder(identity(24)),
+    source: 'polarity-reference §4.5',
+    verified: false,
+    status: 'PARTIAL',
+  },
+  {
+    kind: 'cassette',
+    id: 'cas-u1-24-row',
+    label: 'Per-row 24F pairing (rejected)',
+    blurb: 'Pairs 1+12 … on row 1 and 13+24 … on row 2. Known bad: port p lands on p+6.',
+    footprint: 'MPO-24',
+    positions: 24,
+    litPositions: identity(24),
+    transition: 'U1-row',
+    rearAdapter: 'A',
+    frontMap: fromPairs([1, 2, 3, 4, 5, 6, 13, 14, 15, 16, 17, 18], [12, 11, 10, 9, 8, 7, 24, 23, 22, 21, 20, 19]),
+    fixtureOnly: true,
+    source: 'polarity-reference §4.3a (rejected pairing)',
+    verified: false,
+    status: 'UNVERIFIED',
+  },
+];
