@@ -1,0 +1,87 @@
+.page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4) var(--space-12);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.title {
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.subtitle {
+  margin: var(--space-1) 0 0;
+  font-family: var(--font-subtitle);
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.themeToggle {
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-raised);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: transform 160ms var(--ease-out), box-shadow 160ms var(--ease-out);
+}
+
+.themeToggle:hover {
+  transform: translateY(-1px);
+}
+
+.themeToggle:active {
+  transform: translateY(1px);
+}
+
+.main {
+  margin-top: var(--space-8);
+}
+
+.stage {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6) var(--space-4);
+  box-shadow: var(--shadow);
+}
+
+.fibre {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.path {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.pulse {
+  fill: var(--glow);
+  filter: drop-shadow(0 0 6px var(--glow)) drop-shadow(0 0 14px var(--glow));
+}
+
+.endLabel {
+  font-family: var(--font-title);
+  font-size: 18px;
+  fill: var(--text);
+}
+
+.note {
+  margin: var(--space-4) 0 0;
+  text-align: center;
+  color: var(--text-muted);
+}

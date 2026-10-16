@@ -1,0 +1,90 @@
+/*
+ * Design tokens. Colours come from /brand only; the darker "lab" surfaces are
+ * shades of Deep Blue. Fonts are the brand guide's approved substitutes:
+ * Arial for titles and body, Georgia Italic for subtitles.
+ * TIA-598 fibre colours are functional, not brand, and live with the data.
+ */
+:root {
+  /* Brand palette */
+  --brand-deep-blue: #1b304a;
+  --brand-powder-blue: #80a5d9;
+  --brand-black: #000000;
+  --brand-white: #ffffff;
+  --brand-aubergine: #4c132b;
+  --brand-coral: #dd5e57;
+  --brand-mint: #b3d9da;
+  --brand-sand: #f0ebe8;
+
+  /* Type */
+  --font-title: Arial, 'Helvetica Neue', Helvetica, sans-serif;
+  --font-subtitle: Georgia, 'Times New Roman', serif;
+  --font-body: Arial, 'Helvetica Neue', Helvetica, sans-serif;
+
+  /* Spacing and shape */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Light theme (default) */
+  --bg: var(--brand-white);
+  --surface: var(--brand-sand);
+  --surface-raised: var(--brand-white);
+  --text: var(--brand-deep-blue);
+  --text-muted: color-mix(in srgb, var(--brand-deep-blue) 70%, white);
+  --accent: var(--brand-powder-blue);
+  --border: color-mix(in srgb, var(--brand-deep-blue) 14%, transparent);
+  --shadow: 0 1px 2px rgb(27 48 74 / 0.08), 0 8px 24px rgb(27 48 74 / 0.10);
+  --glow: var(--brand-powder-blue);
+  /* Pass/fail are always paired with an icon and text, never colour alone */
+  --pass: var(--brand-mint);
+  --pass-ink: var(--brand-deep-blue);
+  --fail-ink: var(--brand-white);
+  --fail: var(--brand-coral);
+  --focus: var(--brand-deep-blue);
+  color-scheme: light;
+}
+
+/* Dark "lab" theme: follows the system unless the page forces light */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: color-mix(in srgb, var(--brand-deep-blue) 55%, var(--brand-black));
+    --surface: var(--brand-deep-blue);
+    --surface-raised: color-mix(in srgb, var(--brand-deep-blue) 88%, var(--brand-white));
+    --text: var(--brand-white);
+    --text-muted: color-mix(in srgb, var(--brand-white) 72%, var(--brand-deep-blue));
+    --accent: var(--brand-powder-blue);
+    --border: color-mix(in srgb, var(--brand-powder-blue) 22%, transparent);
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 12px 32px rgb(0 0 0 / 0.45);
+    --glow: var(--brand-mint);
+    --pass: var(--brand-mint);
+    --pass-ink: var(--brand-deep-blue);
+    --fail-ink: var(--brand-white);
+    --fail: var(--brand-coral);
+    --focus: var(--brand-mint);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --bg: color-mix(in srgb, var(--brand-deep-blue) 55%, var(--brand-black));
+  --surface: var(--brand-deep-blue);
+  --surface-raised: color-mix(in srgb, var(--brand-deep-blue) 88%, var(--brand-white));
+  --text: var(--brand-white);
+  --text-muted: color-mix(in srgb, var(--brand-white) 72%, var(--brand-deep-blue));
+  --accent: var(--brand-powder-blue);
+  --border: color-mix(in srgb, var(--brand-powder-blue) 22%, transparent);
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 12px 32px rgb(0 0 0 / 0.45);
+  --glow: var(--brand-mint);
+  --pass: var(--brand-mint);
+  --fail: var(--brand-coral);
+  --focus: var(--brand-mint);
+  color-scheme: dark;
+}

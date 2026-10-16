@@ -25,6 +25,7 @@ The owner works in sales, not engineering. Explain things plainly, give clear "h
 
 ## Defaults
 - Cassettes are male (pinned) and trunks are female.
+- On first page load (no URL state), show a Type A cassette at both ends (the house default cassette).
 - Gender mismatches are a soft warning only.
 - Polish: APC on singlemode MPO, UPC on multimode MPO, with per-optic exceptions (reference §6.0). A key-up/key-up adapter on APC is a BLOCK.
 - Labels use `MPO-<positions> · <lit>F` (e.g. MPO-12 · 8F). Never show a bare "MPO-8".
