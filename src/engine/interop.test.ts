@@ -54,11 +54,25 @@ describe('§3-4 interop channels', () => {
 
   it('IO-10: 400G SR4.2 ↔ 400G SR4 (802.3db) → FAIL', () => expect(verdict('qsfpdd-400g-sr4.2', 'qsfpdd-400g-sr4')).toBe('FAIL'));
 
-  it('IO-11: 400G SR8 → 8 × 50G SR / 2 × 200G SR4 → PASS, flagged out of v1 (MPO-16)', () => {
+  // The reference expects a scope WARN here because MPO-16 was out of v1. The
+  // owner brought MPO-16 into v1 (2026-10-16), so the interop verdict alone is
+  // PASS and only twin-MPO optics keep the scope flag.
+  it('IO-11: 400G SR8 → 8 × 50G SR / 2 × 200G SR4 → PASS; MPO-16 is now in scope', () => {
     expect(verdict('qsfpdd-400g-sr8', 'sfp56-50g-sr')).toBe('PASS');
     expect(verdict('qsfpdd-400g-sr8', 'qsfp56-200g-sr4')).toBe('PASS');
-    expect(scopeIssues(o('qsfpdd-400g-sr8'))).toEqual([expect.objectContaining({ severity: 'warn', code: 'scope' })]);
-    expect(scopeIssues(o('qsfpdd-400g-sr8'))[0].message).toMatch(/MPO-16/);
+    expect(scopeIssues(o('qsfpdd-400g-sr8'))).toEqual([]);
+    expect(scopeIssues(o('osfp-800g-2xdr4'))).toEqual([expect.objectContaining({ severity: 'warn', code: 'scope' })]);
+  });
+
+  it('800G DR8 → 8 × 100G DR / FR1 → PASS; → 100G CWDM4 → FAIL', () => {
+    expect(verdict('osfp-800g-dr8', 'qsfp28-100g-dr')).toBe('PASS');
+    expect(verdict('osfp-800g-dr8', 'qsfp28-100g-fr1')).toBe('PASS');
+    expect(verdict('osfp-800g-dr8', 'qsfp28-100g-cwdm4')).toBe('FAIL');
+  });
+
+  it('800G SR8 → 8 × 100G SR1 → PASS; → 25G SR → FAIL', () => {
+    expect(verdict('osfp-800g-sr8', 'qsfp28-100g-sr1')).toBe('PASS');
+    expect(verdict('osfp-800g-sr8', 'sfp28-25g-sr')).toBe('FAIL');
   });
 
   it('IO-12: 400G SR4 (802.3db) → 4 × 100G SR1 → PASS', () => expect(verdict('qsfpdd-400g-sr4', 'qsfp28-100g-sr1')).toBe('PASS'));

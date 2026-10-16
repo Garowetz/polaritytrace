@@ -335,6 +335,7 @@ These decisions limit what the tool shows. They don't change the research.
 - **Polish default:** APC on singlemode MPO, UPC on multimode MPO, with the per-optic exceptions in §6.0.
 - **Adapters are fixed.** Key-changeable MPO adapters and connectors exist but are not modelled.
 - Rows in §8 that need components outside this scope (array cords, harnesses, two trunks) remain as engine tests but are not offered in the v1 UI.
+- **MPO-16 is in v1 (owner decision, 2026-10-16; answers R3-O5).** Single-MPO-16 optics (800G DR8, 800G SR8, 400G SR8), MPO-16 trunks and an 8-port CS module with one MPO-16 rear are offered. Twin-MPO optics (800G 2×DR4) stay out. IO-11 therefore no longer carries an "out of v1" WARN. The 8-port CS module's internal map is assumed to be the derived U1-16 pairing (§4.3a a: port p = MPO p, 17−p) with a key-up/key-down rear adapter, **UNVERIFIED until the product drawing is supplied**. CS cords use LC polarity logic (§5.2).
 
 ---
 

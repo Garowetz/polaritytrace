@@ -84,9 +84,9 @@ export function checkInterop(a: OpticDef, b: OpticDef, opts: InteropOptions = {}
   return fail(a, b);
 }
 
-/** Optics outside v1 scope stay in the data but are flagged (reference §3-5 R3-O5). */
+/** Optics outside v1 scope stay in the data but are flagged (reference §3-5 R3-O5, owner scope note). */
 export function scopeIssues(o: OpticDef): Issue[] {
   if (o.inV1) return [];
-  const why = o.connector === 'MPO-16' ? 'MPO-16 optics are' : o.connector === '2xMPO-12' ? 'Twin-MPO optics are' : 'This optic is';
+  const why = o.connector === '2xMPO-12' ? 'Twin-MPO optics are' : 'This optic is';
   return [{ severity: 'warn', code: 'scope', message: `${why} outside the scope of this version (${o.label}).` }];
 }

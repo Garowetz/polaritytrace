@@ -79,6 +79,22 @@ export function mechanicalIssues(link: ResolvedLink): Issue[] {
       });
     }
 
+    if (end.kind === 'cassette') {
+      const cassetteSide = new Set<string>();
+      const equipmentSide = new Set<string>();
+      for (const port of end.patched) {
+        const cord = end.cordFor(port);
+        if (cord.ends.cassette !== end.def.frontConnector) cassetteSide.add(cord.label);
+        if (!end.equipment.generic && cord.ends.equipment !== end.equipment.connector) equipmentSide.add(cord.label);
+      }
+      for (const label of cassetteSide) {
+        issues.push({ severity: 'block', code: 'duplex-connector', side, message: `The ${label} cord does not fit the ${sideName(side)} cassette: its front ports are ${end.def.frontConnector}.` });
+      }
+      for (const label of equipmentSide) {
+        issues.push({ severity: 'block', code: 'duplex-connector', side, message: `The ${label} cord does not fit the ${sideName(side)} optic: it takes ${end.equipment.connector}.` });
+      }
+    }
+
     const mpoFibre = end.kind === 'cassette' ? end.fibre : end.def.fibre;
     if (mpoFibre && mpoFibre !== link.fibre) {
       issues.push({ severity: 'fail', code: 'fibre-type', side, message: fibreMessage(mpoFibre, link.fibre, side) });

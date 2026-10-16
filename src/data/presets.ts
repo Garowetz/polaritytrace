@@ -158,4 +158,41 @@ export const presets: readonly Preset[] = [
     },
     expect: 'WARN',
   },
+  {
+    id: '800g-dr8-direct',
+    label: '800G DR8 direct (MPO-16)',
+    blurb: 'Two 800G DR8 optics joined by one MPO-16 Type B cable.',
+    config: {
+      left: opticEnd('osfp-800g-dr8'),
+      cable: { trunk: 'trunk-b-16', ...SM },
+      right: opticEnd('osfp-800g-dr8'),
+    },
+    expect: 'PASS',
+    underReview: true,
+  },
+  {
+    id: '800g-dr8-breakout',
+    label: '800G DR8 to 8 × 100G DR breakout',
+    blurb: 'DR8 → MPO-16 Type B trunk → 8-port CS module → CS-to-LC A-to-A cords → eight 100G DR.',
+    config: {
+      left: opticEnd('osfp-800g-dr8'),
+      cable: { trunk: 'trunk-b-16', ...SM },
+      right: cassetteEnd('cas-u1-16-cs', 'cs-lc-aa', { equipment: 'qsfp28-100g-dr' }),
+    },
+    expect: 'WARN',
+    underReview: true,
+  },
+  {
+    id: 'mistake-800g-dr8-breakout-standard-cords',
+    label: 'Common mistake: 800G DR8 breakout with standard cords',
+    blurb: 'Through a trunk, a universal-style module with standard cords puts Tx on Tx.',
+    config: {
+      left: opticEnd('osfp-800g-dr8'),
+      cable: { trunk: 'trunk-b-16', ...SM },
+      right: cassetteEnd('cas-u1-16-cs', 'cs-lc-ab', { equipment: 'qsfp28-100g-dr' }),
+    },
+    expect: 'FAIL',
+    mistake: true,
+    underReview: true,
+  },
 ];

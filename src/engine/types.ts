@@ -68,16 +68,20 @@ export interface CassetteDef extends Described, Sourced {
   transition: Transition;
   /** Rear MPO adapter: Type A = key-up/key-down, Type B = key-up/key-up. */
   rearAdapter: PolarityType;
+  /** Duplex connector on the front ports. CS follows LC polarity (reference §5.2). */
+  frontConnector: DuplexConnector;
   frontMap: readonly FrontPort[];
   /** Only used as a known-bad test fixture; never offered in a picker. */
   fixtureOnly?: boolean;
 }
 
 export type CordMap = 'A-to-B' | 'A-to-A';
+export type DuplexConnector = 'LC' | 'CS';
 
 export interface DuplexCordDef extends Described, Sourced {
   kind: 'duplexCord';
-  connector: 'LC' | 'CS';
+  /** Connector at the cassette end and at the equipment end. */
+  ends: { cassette: DuplexConnector; equipment: DuplexConnector };
   map: CordMap;
   /** A-to-B is the TIA standard cord. */
   standard: boolean;
