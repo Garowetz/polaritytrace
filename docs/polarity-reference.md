@@ -38,6 +38,70 @@ This revision answers the 14 open questions from revision 1. Changes, correction
 | N-5 | **New.** Method B in practice: an inverted far cassette or a B1/B2 pair. F-5 is now WARN. | §4.1, §8 |
 | N-6 | **New.** 24F straight-cassette behaviour, harness leg convention, colour table and reach table. | §4.5, §5.4, §10, §6.7 |
 
+## Revision 2.1 (2026-10-16): interim reasoning, not yet sourced
+
+The research chat worked through the four follow-up questions from position algebra while a sourced research run was unavailable. Items marked **(algebra)** are derivations and can be relied on as logic. Items marked **(needs source)** are provisional. A sourced run will follow.
+
+### 2.1-1 Mixing U1 and U2 (algebra)
+- Seen from the trunk, "U1 transition + Type A adapter" and "U2 transition + Type B adapter" are the same black box. U1 at one end and U2 at the other over a Type B trunk therefore **passes**. F-U1U2-MIX is revised to WARN "mixed methods" (BLOCK if APC).
+- **Why Fluke says U1 breakout needs A-to-A:** in a patch field, a parallel optic reaches the trunk through an MPO equipment cord and a pass-through panel adapter. That adapter's type follows the method: Type A in a U1 system, Type B in a U2 system. Tracing SR4 lane *k* (Tx at position *k*) with a Type B equipment cord:
+
+| System | Equipment cord → panel adapter → trunk | Arrives at cassette | Cassette port *k* | A-to-B cord → far optic | Result |
+|---|---|---|---|---|---|
+| U1 | Type B → Type A → Type B: net straight | position *k* | fibre A | lands on optic B (Tx) | ❌ Tx→Tx; needs A-to-A |
+| U2 | Type B → Type B → Type B: net reversed | position 13−k | fibre B | lands on optic A (Rx) | ✅ |
+
+  The cassette black box is identical in both rows. The extra Type B adapter in the U2 patch field makes the whole difference.
+- **Engine rule:** model every MPO-to-MPO pass-through adapter as its own component and let each preset set its type. Cassettes need no special U1/U2 flag.
+- **v1 note (derived in this repo):** in v1 the MPO optic plugs straight into the single trunk, with no equipment cord or panel adapter. Then SR4 → Type B trunk → U1 cassette (Type A rear adapter) lands lane *k* on port *k* fibre B, and an A-to-B cord delivers it to the far optic's A (Rx): **PASS** with standard cords. This holds only under the Tx = B convention in §2.1-2.
+
+### 2.1-2 Duplex A and B at the equipment port (algebra + needs source)
+- **Proposed convention:** at every duplex optic, Tx = position B and Rx = position A. This matches Fluke's quote of TIA, "the Tx (B) should always connect to the Rx (A)".
+- **Correction (from this repo's review):** the interim note said this is "the only labelling under which a single A-to-B cord between two optics passes". That is not right. Any labelling applied the same way at both optics passes with an A-to-B cord. **Where the convention matters is breakout** (parallel optic on one side, cassette + duplex optic on the other). There the cassette's A/B labels and the optic's A/B labels meet, and Tx = A versus Tx = B flips the verdict. So the convention must be confirmed with a TIA figure, not inferred.
+- Left/right is for drawing only. The engine tracks A/B; rendering uses left/right.
+- **(needs source)** Whether position B is the left bore looking into a module with the latch up. The QSFP-DD MSA puts Tx on the left, which suggests B = left.
+
+### 2.1-3 The inverted Method B cassette (algebra)
+- **A and B travel with the key, not with left/right.** When a cassette is turned upside down:
+  - each front LC adapter rotates 180°, and the cord plug goes in latch-down, so label A still mates with label A. The cord carries a half twist, which doesn't change its fibre map;
+  - the rear key-up/key-up adapter, flipped over, is still aligned-key (both keys now point down), so it is still Type B. The trunk plug goes in key-down, which is also just a twist.
+- So in label terms an inverted cassette behaves exactly like an upright one; only the physical slot of each printed port changes. Trace of near port 1, fibre A:
+
+| Step | Component | Position after this step |
+|---|---|---|
+| 1 | Near optic Tx = B, through an A-to-B cord | Near cassette port 1, A (LC fibre 1) |
+| 2 | Straight transition | Internal MPO 1 |
+| 3 | Type B rear adapter | Trunk end 1, position 12 |
+| 4 | Type B trunk | Trunk end 2, position 1 |
+| 5 | Far Type B adapter (flipped with the inverted cassette, still Type B) | Far internal MPO 12 |
+| 6 | Straight transition | LC fibre 12 = printed port 6, B |
+| 7 | A-to-B cord | Far optic A = Rx ✅ |
+
+- **(i) Two upright cassettes:** light reaches Rx, but port 1 arrives at printed port 6 (7−p). WARN, port mismatch.
+- **(ii) Far cassette inverted:** printed port 6 sits in physical slot 1, so slot *p* → slot *p* and Tx → Rx. **PASS**, with a note that printed labels read 7−p.
+- **(iii) B1/B2 pair (needs engineering):** a plain reversal far-end cassette (LC 1–12 = MPO 12…1) puts port 1 on port 1 fibre **A**, which is Tx→Tx: FAIL. A working far-end cassette must reverse the ports but keep each pair's A/B order: **LC 1–12 = MPO 11, 12, 9, 10, 7, 8, 5, 6, 3, 4, 1, 2**. The competitor "Method B BN" drawing in §4.1 (MPO 12, 11 … 1 → LC 1 … 12) looks like a plain reversal; check the real far-end map before adding this preset. (Checked in this repo: with that map, near MPO 1 → far internal 12 → LC 2 = port 1 B, and near MPO 2 → far internal 11 → LC 1 = port 1 A. Port 1 → port 1, crossed. ✅)
+
+### 2.1-4 Optic interoperability (needs source; UNVERIFIED)
+A pair of optics passes only if the light lands correctly **and** both optics share an interoperability group.
+
+| Parallel optic | Valid far-end duplex optics | Conditions | Common look-alikes that don't work |
+|---|---|---|---|
+| 40G SR4 (4×10G NRZ, 850 nm, MM) | 4× 10GBASE-SR | Switch port set to 4×10G breakout; reach limited to the SR4's 100/150 m | 10G LR or LRM (singlemode, different wavelength) |
+| 100G SR4 (4×25G NRZ) | 4× 25GBASE-SR | 25G side needs RS-FEC | 4× 10G SR: only on some platforms, not standard |
+| 400G DR4 (4×100G PAM4, 1310 nm, SM) | 4× 100G DR, also 100G FR1 and LR1 | Same single-wavelength 100G PAM4 lanes; reach capped at DR4's 500 m | 100G CWDM4 or FR4 (4-wavelength); 100G PSM4 (25G NRZ lanes) |
+| 400G SR4.2 BiDi | 4× 100G SR1.2 | BiDi to BiDi only | 40/100G SR-BiDi; 400GBASE-SR4 (802.3db) |
+| 400G SR8 (8×50G PAM4) | 8× 50G SR; 2× 200G SR4 on some platforms | PAM4 at both ends | 25G SR (NRZ) |
+| 400GBASE-SR4 (802.3db, 4×100G MM) | 4× 100GBASE-SR1 | Same 850 nm 100G lanes | 400G SR4.2; 100G SR1.2 |
+| 800G 2×DR4 / DR8 | 2× 400G DR4 or 8× 100G DR | 100G-per-lane PAM4 | Lane-rate mismatches |
+
+- **Optic data fields:** `fibreType`, `wavelengthScheme` (SR, BiDi, SWDM, single-wavelength, 4-wavelength), `laneRate`, `modulation` (NRZ / PAM4), `interopGroup`, `breakoutModes`.
+- **General mismatches to catch:** MM optics on SM fibre; 850 nm SR with SWDM; BiDi with non-BiDi; NRZ lanes with PAM4 lanes (e.g. 25G NRZ against 50G PAM4).
+
+### 2.1 open items for the next sourced run
+1. TIA figure for duplex A/B at the equipment port, and whether B is the left bore (latch up). This decides breakout verdicts (§2.1-2).
+2. A real published far-end (B2) Method B cassette map (§2.1-3 iii).
+3. Sources for the interoperability table (§2.1-4).
+
 ## Scope for Polarity Trace v1 (owner decisions, 2026-10-16)
 
 These decisions limit what the tool shows. They don't change the research.
@@ -630,7 +694,7 @@ Where this table differs from a † value in §6.1–§6.3, this table wins.
 | P-U1-24-16F | MPO-24 · 16F: §4.3a(c) cassette both ends, Type B 24F trunk | Port *p* → *p* (8 ports) | Derived (provisional) |
 | P-U2-12 | U2 (12,1,11,2,…,8,5,7,6) both ends, Type B trunk, Type B adapters, A-to-B cords, **UPC only** | Port *p* → *p* | VERIFIED order |
 | P-MB-INV | Method B, far cassette inverted | Panel position *p* → *p*; printed label 7−p | VERIFIED |
-| P-MB-B1B2 | Method B, B1/B2 matched pair | Port *p* → *p* | VERIFIED |
+| P-MB-B1B2 | Method B, B1/B2 matched pair | Port *p* → *p* | **On hold (2.1):** the far-end (B2) cassette map must be confirmed before this preset ships; see §2.1-3 |
 | P-APC-PAR | SM APC DR4: Type B cord – Type A adapter – Type A trunk – Type A adapter – Type A cord | PASS (odd Type B count, all key-up/key-down) | VERIFIED |
 | P-SR4.2 | QDD-400G-SR4.2-BD ↔ same, direct Type B MPO-12 cord, UPC | TRk lands on RTk | VERIFIED |
 | P-SR8-24A | 400G SR8 option A, MPO-24 Type B cord, direct | Row-1 Tx 1–4 → row-2 Rx 21–24; row-2 Tx 13–16 → row-1 Rx 9–12 | PARTIAL (24F Type B) |
@@ -646,7 +710,7 @@ Where this table differs from a † value in §6.1–§6.3, this table wins.
 | F-U1-24ROW | Per-row 24F U1 pairing (1/12…, 13/24…) with Type B 24F trunk | FAIL/WARN: port *p* → *p*+6 |
 | F-U1-24-A | U1-24 (p / 25−p) with a 24F Type A trunk | FAIL: port *p* → 13−p |
 | F-24STRAIGHT | Straight 24F cassettes both ends, 24F Type A trunk | FAIL: no Tx/Rx crossover, port *p* → *p*+6 |
-| F-U1U2-MIX | U1 cassette one end, U2 the other, each with its matching adapter | FAIL: A→A (even inversions) |
+| F-U1U2-MIX | U1 cassette one end, U2 the other, each with its matching adapter | **Revised in 2.1:** WARN "mixed methods" (light lands correctly; TIA and Fluke say not to mix methods). BLOCK if APC, because U2 uses a key-up/key-up adapter. |
 | F-SR1.2-SRBD | QSFP-100G-SR1.2 ↔ QSFP-40/100-SRBD | FAIL (non-interoperable optics, per Cisco) |
 | F-LATCH | SFP in a latch-down cage modelled as latch-up | Tx/Rx sides mirrored; must FAIL if the engine ignores latch |
 
