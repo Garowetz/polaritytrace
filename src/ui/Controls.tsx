@@ -1,0 +1,104 @@
+import { METHOD_NAMES, type LinkResult, type Step } from '../engine';
+import type { Preset } from '../data/presets';
+import styles from './Controls.module.css';
+
+export function PresetBar({ presets, active, onPick }: { presets: readonly Preset[]; active: string; onPick: (id: string) => void }) {
+  return (
+    <nav className={styles.presets} aria-label="Presets">
+      {presets.map((p) => (
+        <button
+          key={p.id}
+          type="button"
+          className={`${styles.chip} ${p.mistake ? styles.mistake : ''}`}
+          aria-pressed={p.id === active}
+          title={p.blurb}
+          onClick={() => onPick(p.id)}
+        >
+          {p.mistake && <span className={styles.chipIcon} aria-hidden="true">!</span>}
+          {p.label.replace('Common mistake: ', '')}
+          {p.mistake && <span className={styles.srOnly}> (common mistake)</span>}
+        </button>
+      ))}
+    </nav>
+  );
+}
+
+const VERDICT_TEXT: Record<LinkResult['verdict'], { icon: string; text: string }> = {
+  PASS: { icon: '✓', text: 'Works' },
+  WARN: { icon: '!', text: 'Works, with warnings' },
+  FAIL: { icon: '✕', text: 'Does not work' },
+  BLOCK: { icon: '⛔', text: 'Cannot be built' },
+};
+
+const SEVERITY_ORDER = { block: 0, fail: 1, warn: 2, note: 3 } as const;
+
+export function VerdictStrip({ result }: { result: LinkResult }) {
+  const v = VERDICT_TEXT[result.verdict];
+  const ok = result.channels.filter((c) => c.outcome === 'tx-to-rx').length;
+  const issues = [...result.issues].sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]).slice(0, 4);
+  return (
+    <section className={`${styles.verdict} ${styles[`v_${result.verdict}`]}`} aria-live="polite">
+      <div className={styles.verdictHead}>
+        <span className={styles.badge}>
+          <span aria-hidden="true">{v.icon}</span> {v.text}
+        </span>
+        <span className={styles.meta}>
+          {result.method ? METHOD_NAMES[result.method] : 'No standard method'}
+          {result.channels.length > 0 && ` · ${ok} of ${result.channels.length} channels deliver Tx to Rx`}
+        </span>
+      </div>
+      {issues.length > 0 && (
+        <ul className={styles.issues}>
+          {issues.map((i, k) => (
+            <li key={k} className={styles[`s_${i.severity}`]}>
+              <span className={styles.sev}>{i.severity === 'note' ? 'Note' : i.severity === 'warn' ? 'Warning' : i.severity === 'fail' ? 'Fails' : 'Blocked'}</span>
+              {i.message}
+            </li>
+          ))}
+        </ul>
+      )}
+      {result.underReview.length > 0 && (
+        <p className={styles.review}>
+          <span aria-hidden="true">*</span> Under review: {result.underReview.map((u) => u.label).join(', ')}. These parts rely on partial or derived data.
+        </p>
+      )}
+    </section>
+  );
+}
+
+interface StepProps {
+  steps: Step[];
+  index: number | null;
+  playing: boolean;
+  onIndex: (i: number | null) => void;
+  onPlay: (p: boolean) => void;
+}
+
+export function StepControls({ steps, index, playing, onIndex, onPlay }: StepProps) {
+  const last = steps.length - 1;
+  const shown = steps[index ?? last];
+  const pos = index ?? last;
+  return (
+    <section className={styles.stepper} aria-label="Step through the link">
+      <div className={styles.caption} aria-live="polite">
+        <span className={styles.stepCount}>{index === null ? 'Whole link' : `Step ${pos + 1} of ${steps.length}`}</span>
+        <strong className={styles.stepTitle}>{shown?.title}</strong>
+        <span className={styles.stepText}>{shown?.text}</span>
+      </div>
+      <div className={styles.buttons}>
+        <button type="button" onClick={() => onIndex(Math.max(0, (index ?? 1) - 1))} disabled={index === 0} aria-label="Previous step">
+          ‹
+        </button>
+        <button type="button" className={styles.play} onClick={() => onPlay(!playing)} aria-label={playing ? 'Pause' : 'Play the light step by step'}>
+          {playing ? '❚❚' : '▶'}
+        </button>
+        <button type="button" onClick={() => onIndex(index === null ? 0 : Math.min(last, index + 1))} disabled={index === last} aria-label="Next step">
+          ›
+        </button>
+        <button type="button" className={styles.all} onClick={() => onIndex(null)} disabled={index === null}>
+          Show all
+        </button>
+      </div>
+    </section>
+  );
+}

@@ -1,0 +1,227 @@
+.canvas {
+  display: block;
+  height: auto;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  overflow: visible;
+}
+
+.horizontal {
+  width: 100%;
+  min-width: 880px;
+}
+
+.vertical {
+  width: 100%;
+  max-width: 460px;
+  margin: 0 auto;
+}
+
+/* Component boxes */
+.box > rect:first-child {
+  stroke: var(--border);
+  stroke-width: 1;
+  transition: fill 300ms var(--ease-out);
+}
+
+.box_equipment > rect:first-child,
+.box_optic > rect:first-child {
+  fill: color-mix(in srgb, var(--brand-deep-blue) 10%, var(--surface-raised));
+}
+
+.box_cord > rect:first-child {
+  fill: color-mix(in srgb, var(--accent) 8%, transparent);
+  stroke-dasharray: 2 5;
+}
+
+.box_cassette > rect:first-child {
+  fill: var(--surface-raised);
+  filter: drop-shadow(0 6px 14px rgb(27 48 74 / 0.12));
+}
+
+.box_adapter > rect:first-child {
+  fill: color-mix(in srgb, var(--text) 10%, transparent);
+}
+
+.box_trunk > rect:first-child {
+  fill: color-mix(in srgb, var(--accent) 14%, transparent);
+  stroke: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.review > rect:first-child {
+  stroke: var(--brand-coral);
+  stroke-dasharray: 6 4;
+}
+
+.boxLabel {
+  pointer-events: none;
+}
+
+.pill {
+  fill: var(--surface-raised);
+  stroke: var(--border);
+}
+
+.labelMain {
+  font-family: var(--font-title);
+  font-size: 12.5px;
+  fill: var(--text);
+  letter-spacing: 0.02em;
+}
+
+.labelSub {
+  font-size: 10.5px;
+  fill: var(--text-muted);
+}
+
+.box_adapter .labelMain {
+  font-size: 10px;
+  fill: var(--text-muted);
+}
+
+/* Fibres */
+.fibre {
+  cursor: pointer;
+  outline: none;
+  transition: opacity 220ms var(--ease-out);
+}
+
+.casing,
+.core,
+.hit {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.casing {
+  stroke: color-mix(in srgb, var(--brand-deep-blue) 55%, transparent);
+  stroke-width: 5.2;
+}
+
+.core {
+  stroke-width: 3;
+}
+
+.hit {
+  stroke: transparent;
+  stroke-width: 14;
+}
+
+.focusing .off {
+  opacity: 0.12;
+}
+
+.focusing .on .core {
+  stroke-width: 4;
+  filter: url(#pt-glow);
+}
+
+.fibre:focus-visible .casing {
+  stroke: var(--focus);
+  stroke-width: 8;
+}
+
+/* Light pulses */
+.pulses {
+  pointer-events: none;
+}
+
+.pulse {
+  stroke: white;
+  stroke-width: 1.6;
+  filter: url(#pt-glow);
+}
+
+/* Connector positions */
+.slot {
+  cursor: pointer;
+}
+
+.slotHit {
+  fill: transparent;
+}
+
+.dot {
+  fill: var(--text);
+  transition: r 160ms var(--ease-out);
+}
+
+.slot:hover .dot {
+  r: 5.5;
+}
+
+.unlit .dot {
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 1;
+  opacity: 0.5;
+}
+
+.role_tx .dot {
+  fill: var(--brand-powder-blue);
+  stroke: var(--brand-deep-blue);
+  stroke-width: 1;
+}
+
+.role_rx .dot {
+  fill: var(--surface-raised);
+  stroke: var(--text);
+  stroke-width: 1.4;
+}
+
+.role_unused .dot {
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 1;
+  opacity: 0.5;
+}
+
+.current .dot {
+  r: 7;
+  fill: var(--glow);
+  filter: url(#pt-glow);
+}
+
+.posLabel {
+  font-size: 10px;
+  fill: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.roleLabel {
+  font-size: 10px;
+  font-weight: 700;
+  fill: var(--text);
+}
+
+.portLabel {
+  font-family: var(--font-title);
+  font-size: 11px;
+  fill: var(--text);
+}
+
+/* Arrival markers: shape and colour, never colour alone */
+.arriveOk {
+  fill: none;
+  stroke: var(--brand-mint);
+  stroke-width: 3;
+  filter: url(#pt-glow);
+}
+
+.arriveBad circle {
+  fill: var(--brand-coral);
+}
+
+.arriveBad path {
+  stroke: white;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+
+.arriveDark {
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 1.5;
+  stroke-dasharray: 2 2;
+}
