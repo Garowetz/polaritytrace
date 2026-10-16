@@ -25,7 +25,7 @@ The owner works in sales, not engineering. Explain things plainly, give clear "h
 
 ## Defaults
 - Cassettes are male (pinned) and trunks are female.
-- On first page load (no URL state), show TIA Method A in singlemode: the same 12F Type A cassette at both ends (key-up/key-down rear adapter, male, MPO-12 APC), a 12F Type A trunk (female, APC), duplex LC UPC fronts and LC duplex patch cords at both ends (house default cord assumed A-to-B until confirmed). Port 1 → port 1. This mirrors a rack-to-rack link. Optics are optional and off by default; without them each end is a generic equipment port (Tx | Rx).
+- On first page load (no URL state), show TIA Method A in singlemode: the same 12F Type A cassette at both ends (key-up/key-down rear adapter, male, MPO-12 APC), a 12F Type A trunk (female, APC), duplex LC UPC fronts and LC duplex patch cords: A-to-B (standard) at one end and A-to-A at the other, so the first view is a working link (house default cord assumed A-to-B until confirmed). Offer "Common mistake: Method A with standard cords at both ends" as a preset. Port 1 → port 1. This mirrors a rack-to-rack link. Optics are optional and off by default; without them each end is a generic equipment port (Tx | Rx).
 - Gender mismatches are a soft warning only.
 - Polish: APC on singlemode MPO, UPC on multimode MPO, with per-optic exceptions (reference §6.0). A key-up/key-up adapter on APC is a BLOCK.
 - Labels use `MPO-<positions> · <lit>F` (e.g. MPO-12 · 8F). Never show a bare "MPO-8".
