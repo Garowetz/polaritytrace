@@ -91,18 +91,26 @@ interface RawSlot {
   u: number;
 }
 
+// Duplex pairs sit close together, with a wider gap between ports.
+const PAIR = 0.75;
+const PORT_STEP = 2.2;
+
 function duplexSlots(ports: number[], equipment: boolean): RawSlot[] {
   const out: RawSlot[] = [];
   ports.forEach((port, k) => {
-    // B above A: at the equipment B is Tx, so each port reads Tx then Rx.
-    (['B', 'A'] as const).forEach((pos, j) => {
+    // Cassette front: A above B, so A (odd fibre) lines up with the lower MPO
+    // position and a straight cassette draws straight. Equipment: Tx (B)
+    // above Rx (A), so a standard A-to-B cord draws straight and an A-to-A
+    // cord shows its flip.
+    const order = equipment ? (['B', 'A'] as const) : (['A', 'B'] as const);
+    order.forEach((pos, j) => {
       out.push({
         key: `${port}${pos}`,
         label: equipment ? (pos === 'B' ? 'Tx' : 'Rx') : pos,
         port,
         role: equipment ? (pos === 'B' ? 'tx' : 'rx') : undefined,
         lit: true,
-        u: k * 2.6 + j,
+        u: k * PORT_STEP + j * PAIR,
       });
     });
   });

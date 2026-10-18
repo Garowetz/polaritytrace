@@ -1,27 +1,5 @@
-import { METHOD_NAMES, type LinkResult, type Step } from '../engine';
-import type { Preset } from '../data/presets';
+import { METHOD_NAMES, type Fix, type LinkConfig, type LinkResult, type Step } from '../engine';
 import styles from './Controls.module.css';
-
-export function PresetBar({ presets, active, onPick }: { presets: readonly Preset[]; active: string; onPick: (id: string) => void }) {
-  return (
-    <nav className={styles.presets} aria-label="Presets">
-      {presets.map((p) => (
-        <button
-          key={p.id}
-          type="button"
-          className={`${styles.chip} ${p.mistake ? styles.mistake : ''}`}
-          aria-pressed={p.id === active}
-          title={p.blurb}
-          onClick={() => onPick(p.id)}
-        >
-          {p.mistake && <span className={styles.chipIcon} aria-hidden="true">!</span>}
-          {p.label.replace('Common mistake: ', '')}
-          {p.mistake && <span className={styles.srOnly}> (common mistake)</span>}
-        </button>
-      ))}
-    </nav>
-  );
-}
 
 const VERDICT_TEXT: Record<LinkResult['verdict'], { icon: string; text: string }> = {
   PASS: { icon: '✓', text: 'Works' },
@@ -32,7 +10,7 @@ const VERDICT_TEXT: Record<LinkResult['verdict'], { icon: string; text: string }
 
 const SEVERITY_ORDER = { block: 0, fail: 1, warn: 2, note: 3 } as const;
 
-export function VerdictStrip({ result }: { result: LinkResult }) {
+export function VerdictStrip({ result, fixes, onApply }: { result: LinkResult; fixes: Fix[]; onApply: (c: LinkConfig) => void }) {
   const v = VERDICT_TEXT[result.verdict];
   const ok = result.channels.filter((c) => c.outcome === 'tx-to-rx').length;
   const issues = [...result.issues].sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]).slice(0, 4);
@@ -56,6 +34,21 @@ export function VerdictStrip({ result }: { result: LinkResult }) {
             </li>
           ))}
         </ul>
+      )}
+      {fixes.length > 0 && (
+        <div className={styles.fixes}>
+          <span className={styles.fixesTitle}>Try this</span>
+          {fixes.map((f, k) => (
+            <button key={k} type="button" className={styles.fix} onClick={() => onApply(f.config)}>
+              {f.message}
+              <span className={styles.fixVerdict}>
+                {' '}
+                → {VERDICT_TEXT[f.verdict].text.toLowerCase()}
+                {f.underReview ? ' *' : ''}
+              </span>
+            </button>
+          ))}
+        </div>
       )}
       {result.underReview.length > 0 && (
         <p className={styles.review}>

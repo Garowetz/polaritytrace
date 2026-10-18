@@ -8,9 +8,9 @@ describe('fix suggestions', () => {
     expect(suggestFixes(link(cas('cas-u1-12', 'lc-ab'), { trunk: 'trunk-b-12', ...SM }, cas('cas-u1-12', 'lc-ab')), catalog)).toEqual([]);
   });
 
-  it('F-1 (Method A, standard cords both ends): first fix swaps the right-hand cords to A-to-A', () => {
+  it('F-1 (Method A, standard cords both ends): first fix swaps the End B cords to A-to-A', () => {
     const fixes = suggestFixes(link(cas('cas-a-12', 'lc-ab'), { trunk: 'trunk-a-12', ...SM }, cas('cas-a-12', 'lc-ab')), catalog);
-    expect(fixes[0].message).toBe('Swap the right-hand patch cords from A-to-B (standard) to A-to-A.');
+    expect(fixes[0].message).toBe('Swap the End B patch cords from A-to-B (standard) to A-to-A.');
     expect(fixes[0].verdict).toBe('PASS');
     expect(run(fixes[0].config).verdict).toBe('PASS');
   });
@@ -20,7 +20,7 @@ describe('fix suggestions', () => {
       link(optic('qsfp28-100g-sr4'), { trunk: 'trunk-b-12', ...MM }, cas('cas-u1-12', 'lc-ab', { equipment: 'sfp28-25g-sr', patchedPorts: [1, 2, 3, 4] })),
       catalog,
     );
-    expect(fixes[0].message).toBe('Swap the right-hand patch cords from A-to-B (standard) to A-to-A.');
+    expect(fixes[0].message).toBe('Swap the End B patch cords from A-to-B (standard) to A-to-A.');
     expect(fixes[0].verdict).toBe('WARN');
   });
 

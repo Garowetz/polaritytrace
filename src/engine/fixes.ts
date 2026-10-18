@@ -16,7 +16,7 @@ export interface Fix {
 }
 
 const RANK: Record<Verdict, number> = { PASS: 0, WARN: 1, FAIL: 2, BLOCK: 3 };
-const hand = (s: Side) => (s === 'left' ? 'left-hand' : 'right-hand');
+const hand = (s: Side) => (s === 'left' ? 'End A' : 'End B');
 
 function withEnd(config: LinkConfig, side: Side, patch: Partial<CassetteEnd>): LinkConfig {
   const end = config[side];

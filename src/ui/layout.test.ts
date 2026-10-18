@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { catalog } from '../data/catalog';
-import { presets } from '../data/presets';
-import { evaluateLink } from '../engine';
+import { cassetteEnd, opticEnd, presets } from '../data/presets';
+import { evaluateLink, walkSteps, type EndConfig, type LinkConfig } from '../engine';
 import { layoutLink, type Orientation } from './layout';
 
 describe('layout', () => {
@@ -44,5 +44,26 @@ describe('layout', () => {
     ]);
     const xs = g.stations.map((s) => s.slots[0].x);
     expect([...xs].sort((a, b) => a - b)).toEqual(xs);
+  });
+
+  it('every combination the pickers can make evaluates, lays out and steps without throwing', () => {
+    const ends: EndConfig[] = [
+      ...catalog.cassettes.filter((c) => !c.fixtureOnly).map((c) => cassetteEnd(c.id, c.frontConnector === 'CS' ? 'cs-lc-ab' : 'lc-ab')),
+      ...catalog.optics.filter((o) => o.inV1 && o.mpo && !o.generic).map((o) => opticEnd(o.id)),
+    ];
+    let n = 0;
+    for (const left of ends) {
+      for (const right of ends) {
+        for (const t of catalog.trunks) {
+          const config: LinkConfig = { left, cable: { trunk: t.id, fibre: n % 2 ? 'MMF' : 'SMF' }, right };
+          const result = evaluateLink(config, catalog);
+          const g = layoutLink(config, result, catalog, n % 3 ? 'horizontal' : 'vertical');
+          expect(g.width, JSON.stringify(config)).toBeGreaterThan(0);
+          expect(walkSteps(config, catalog, result).length).toBeGreaterThan(0);
+          n++;
+        }
+      }
+    }
+    expect(n).toBeGreaterThan(1000);
   });
 });

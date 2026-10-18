@@ -10,13 +10,13 @@ describe('step captions', () => {
     const s = steps(link(cas('cas-a-12', 'lc-ab'), { trunk: 'trunk-a-12', ...SM }, cas('cas-a-12', 'lc-aa')));
     expect(s.map((x) => x.title)).toEqual([
       'Equipment port, port 1',
-      'Left patch cord: A-to-B (standard)',
+      'End A patch cord: A-to-B (standard)',
       'Type A cassette',
       'Key-up/key-down rear adapter (Type A)',
       'Type A trunk',
       'Key-up/key-down rear adapter (Type A)',
       'Type A cassette',
-      'Right patch cord: A-to-A',
+      'End B patch cord: A-to-A',
       'Every channel',
     ]);
     expect(s[7].text).toMatch(/Rx ✓/);

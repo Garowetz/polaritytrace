@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { catalog } from '../data/catalog';
 import { DEFAULT_PRESET, presets } from '../data/presets';
-import { evaluateLink, walkSteps } from '../engine';
+import { evaluateLink, suggestFixes, UnknownComponentError, walkSteps, type LinkConfig } from '../engine';
 import styles from './App.module.css';
 import { Canvas, type Focus } from './Canvas';
-import { PresetBar, StepControls, VerdictStrip } from './Controls';
+import { Builder, presetFor } from './Builder';
+import { StepControls, VerdictStrip } from './Controls';
 import { layoutLink } from './layout';
 import { useMediaQuery } from './useMediaQuery';
 
@@ -19,7 +20,7 @@ const STEP_MS = 2200;
 export function App() {
   // Theme is per-session only: nothing is stored.
   const [theme, setTheme] = useState<Theme>(systemTheme);
-  const [presetId, setPresetId] = useState(DEFAULT_PRESET);
+  const [config, setConfig] = useState<LinkConfig>(() => (presets.find((p) => p.id === DEFAULT_PRESET) ?? presets[0]).config);
   const [hover, setHover] = useState<Focus | null>(null);
   const [pinned, setPinned] = useState<Focus | null>(null);
   const [step, setStep] = useState<number | null>(null);
@@ -32,10 +33,12 @@ export function App() {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
 
-  const preset = presets.find((p) => p.id === presetId) ?? presets[0];
-  const result = useMemo(() => evaluateLink(preset.config, catalog), [preset]);
-  const steps = useMemo(() => walkSteps(preset.config, catalog, result), [preset, result]);
-  const geom = useMemo(() => layoutLink(preset.config, result, catalog, vertical ? 'vertical' : 'horizontal'), [preset, result, vertical]);
+  const preset = presetFor(presets, config);
+  const configKey = JSON.stringify(config);
+  const result = useMemo(() => evaluateLink(config, catalog), [config]);
+  const steps = useMemo(() => walkSteps(config, catalog, result), [config, result]);
+  const fixes = useMemo(() => (result.verdict === 'PASS' ? [] : suggestFixes(config, catalog)), [config, result]);
+  const geom = useMemo(() => layoutLink(config, result, catalog, vertical ? 'vertical' : 'horizontal'), [config, result, vertical]);
 
   // Play walks the steps on a timer, then returns to the whole link.
   useEffect(() => {
@@ -52,8 +55,15 @@ export function App() {
     return () => window.clearTimeout(t);
   }, [playing, step, steps.length]);
 
-  const pick = (id: string) => {
-    setPresetId(id);
+  const change = (c: LinkConfig) => {
+    // A part the catalog does not know is refused, never drawn.
+    try {
+      evaluateLink(c, catalog);
+    } catch (e) {
+      if (e instanceof UnknownComponentError) return;
+      throw e;
+    }
+    setConfig(c);
     setStep(null);
     setPlaying(false);
     setPinned(null);
@@ -78,13 +88,13 @@ export function App() {
       </header>
 
       <main className={styles.main}>
-        <PresetBar presets={presets} active={preset.id} onPick={pick} />
-        <p className={styles.blurb}>{preset.blurb}</p>
+        <Builder catalog={catalog} config={config} onChange={change} presets={presets} activePreset={preset?.id ?? null} />
+        {preset && <p className={styles.blurb}>{preset.blurb}</p>}
 
         <section className={styles.stage} aria-label="Link diagram">
           <div className={styles.scroller}>
             <Canvas
-              key={`${preset.id}-${geom.orientation}`}
+              key={`${configKey}-${geom.orientation}`}
               geom={geom}
               focus={focus}
               onHover={setHover}
@@ -102,7 +112,7 @@ export function App() {
             <li><span className={`${styles.key} ${styles.keyOk}`} aria-hidden="true" /> Light lands on a receiver</li>
             <li><span className={`${styles.key} ${styles.keyBad}`} aria-hidden="true">✕</span> Light lands on a transmitter</li>
             <li><span className={`${styles.key} ${styles.keyTx}`} aria-hidden="true" /> Optic Tx position</li>
-            <li>Numbers are MPO positions; P1… are duplex ports</li>
+            <li>Small numbers are MPO positions; bold numbers are cassette ports</li>
           </ul>
         </section>
 
@@ -120,7 +130,7 @@ export function App() {
           }}
         />
 
-        <VerdictStrip result={result} />
+        <VerdictStrip result={result} fixes={fixes} onApply={change} />
       </main>
     </div>
   );

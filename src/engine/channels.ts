@@ -19,7 +19,7 @@ function describeArrival(a: Arrival): string {
   }
 }
 
-const sideName = (s: Side) => (s === 'left' ? 'left-hand' : 'right-hand');
+const sideName = (s: Side) => (s === 'left' ? 'End A' : 'End B');
 
 /** Cassette at both ends: one channel per patched port on the left. */
 export function duplexChannels(link: ResolvedLink): Channel[] {

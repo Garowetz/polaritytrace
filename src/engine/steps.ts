@@ -13,7 +13,7 @@ export interface Step {
   text: string;
 }
 
-const Side_ = (s: Side) => (s === 'left' ? 'Left' : 'Right');
+const Side_ = (s: Side) => (s === 'left' ? 'End A' : 'End B');
 const adapterName = (t: PolarityType) =>
   t === 'B' ? 'Key-up/key-up rear adapter (Type B)' : 'Key-up/key-down rear adapter (Type A)';
 const roleText = (role: 'tx' | 'rx' | 'unused', lane?: number) =>

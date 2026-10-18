@@ -9,7 +9,7 @@ const straightA = (c: CassetteDef) => c.transition === 'straight' && c.rearAdapt
 const methodBFront = (c: CassetteDef) => c.rearAdapter === 'B' && ['straight', 'B2', 'BN'].includes(c.transition);
 const isU1 = (c: CassetteDef) => c.transition === 'U1' && c.rearAdapter === 'A';
 const isU2 = (c: CassetteDef) => c.transition === 'U2' && c.rearAdapter === 'B';
-const sideName = (s: Side) => (s === 'left' ? 'left-hand' : 'right-hand');
+const sideName = (s: Side) => (s === 'left' ? 'End A' : 'End B');
 
 export function detectMethod(link: ResolvedLink, mode: Mode): MethodId | null {
   const t = link.trunk.polarity;
@@ -63,7 +63,7 @@ export function methodIssues(link: ResolvedLink, mode: Mode, method: MethodId | 
         severity: 'warn',
         code: 'non-standard-cord',
         side,
-        message: `Non-standard A-to-A cords on the ${sideName(side)} end. Label them clearly so they are not swapped for standard cords.${why}`,
+        message: `Non-standard A-to-A cords at ${sideName(side)}. Label them clearly so they are not swapped for standard cords.${why}`,
       });
     }
   }

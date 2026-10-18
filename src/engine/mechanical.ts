@@ -4,7 +4,7 @@ import type { Footprint, Gender, Issue, Polish, Side } from './types';
 // Mechanical and media checks (reference §3.1, §7, §1.1, §3-3).
 // Gender is a note only (owner decision); footprint and polish mismatches BLOCK.
 
-const sideName = (s: Side) => (s === 'left' ? 'left-hand' : 'right-hand');
+const sideName = (s: Side) => (s === 'left' ? 'End A' : 'End B');
 
 /** Footprint of whatever plugs into the trunk at this end. */
 function endFootprint(end: ResolvedEnd): Footprint | 'twin' | 'duplex' {
@@ -39,8 +39,8 @@ export function blockingMechanical(link: ResolvedLink): Issue[] {
     } else if (fp !== link.trunk.footprint) {
       const msg =
         familyOf(fp) !== familyOf(link.trunk.footprint)
-          ? `MPO-16 has a different key offset and does not mate with MPO-12. The ${sideName(side)} end is ${fp}; the trunk is ${link.trunk.footprint}.`
-          : `The ${sideName(side)} end is ${fp} but the trunk is ${link.trunk.footprint}. They do not mate.`;
+          ? `MPO-16 has a different key offset and does not mate with MPO-12. ${sideName(side)} is ${fp}; the trunk is ${link.trunk.footprint}.`
+          : `${sideName(side)} is ${fp} but the trunk is ${link.trunk.footprint}. They do not mate.`;
       issues.push({ severity: 'block', code: 'footprint', side, message: msg });
     }
   }
@@ -61,14 +61,14 @@ export function mechanicalIssues(link: ResolvedLink): Issue[] {
         side,
         message:
           g === 'M'
-            ? `Male-to-male at the ${sideName(side)} end: two pinned MPOs cannot mate. Order the trunk with an unpinned (female) end there.`
-            : `Female-to-female at the ${sideName(side)} end: no guide pins, so the fibres won't align. One side must be pinned (male).`,
+            ? `Male-to-male at ${sideName(side)}: two pinned MPOs cannot mate. Order the trunk with an unpinned (female) end there.`
+            : `Female-to-female at ${sideName(side)}: no guide pins, so the fibres won't align. One side must be pinned (male).`,
       });
     }
 
     const polish = endPolish(end);
     if (polish && polish !== link.polish) {
-      issues.push({ severity: 'block', code: 'polish-mismatch', side, message: `APC cannot mate with UPC: the ${sideName(side)} end is ${polish} but the trunk is ${link.polish}.` });
+      issues.push({ severity: 'block', code: 'polish-mismatch', side, message: `APC cannot mate with UPC: ${sideName(side)} is ${polish} but the trunk is ${link.polish}.` });
     }
     if (end.kind === 'cassette' && end.def.rearAdapter === 'B' && (end.polish === 'APC' || link.polish === 'APC')) {
       issues.push({
@@ -108,5 +108,5 @@ export function mechanicalIssues(link: ResolvedLink): Issue[] {
 
 function fibreMessage(part: string, cable: string, side: Side): string {
   const name = (f: string) => (f === 'MMF' ? 'multimode' : 'singlemode');
-  return `Fibre type mismatch at the ${sideName(side)} end: ${name(part)} part on ${name(cable)} fibre.`;
+  return `Fibre type mismatch at ${sideName(side)}: ${name(part)} part on ${name(cable)} fibre.`;
 }

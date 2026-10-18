@@ -89,10 +89,6 @@ export function Canvas({ geom, focus, onHover, onPin, stepHop, animate }: Props)
         })}
       </g>
 
-      {geom.boxes.map((b) => (
-        <BoxLabel key={b.id} box={b} vertical={v} />
-      ))}
-
       {animate && (
         <g className={styles.pulses} aria-hidden="true">
           {visible.map((f, i) =>
@@ -109,6 +105,11 @@ export function Canvas({ geom, focus, onHover, onPin, stepHop, animate }: Props)
           )}
         </g>
       )}
+
+      {/* Labels sit above the pulses so moving light never covers text. */}
+      {geom.boxes.map((b) => (
+        <BoxLabel key={b.id} box={b} vertical={v} />
+      ))}
 
       {geom.stations.map((s) => (
         <Station key={s.key} station={s} vertical={v} current={current} onHover={onHover} onPin={onPin} />
@@ -190,7 +191,7 @@ function Station({
               onPin({ kind: 'slot', id: s.id });
             }}
           >
-            <circle cx={s.x} cy={s.y} r={9} className={styles.slotHit} />
+            <circle cx={s.x} cy={s.y} r={7.5} className={styles.slotHit} />
             <circle cx={s.x} cy={s.y} r={3.6} className={styles.dot} />
             {showNumbers && (
               <text x={label.x} y={label.y} textAnchor={anchor} dominantBaseline="central" className={styles.posLabel}>
@@ -212,7 +213,7 @@ function Station({
           const p = at(mid, station.kind === 'equipment' ? 22 : 0);
           return (
             <text key={port} x={p.x} y={p.y} textAnchor={anchor} dominantBaseline="central" className={styles.portLabel}>
-              {`P${port}`}
+              {port}
             </text>
           );
         })}
