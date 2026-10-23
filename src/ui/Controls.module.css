@@ -46,6 +46,115 @@
   font-size: 0.92rem;
 }
 
+.channels {
+  width: 100%;
+  margin-top: var(--space-3);
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.channels th,
+.channels td {
+  padding: 6px var(--space-2);
+  border-top: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.channels thead th {
+  border-top: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.channels tbody th {
+  white-space: nowrap;
+}
+
+.channels td:nth-child(2) {
+  white-space: nowrap;
+}
+
+.rowButton {
+  min-height: 32px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.rowButton[aria-pressed='true'] {
+  background: var(--text);
+  color: var(--bg);
+}
+
+.pinnedRow {
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+}
+
+.outcomeIcon {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.o_txtorx .outcomeIcon {
+  border: 2px solid var(--brand-mint);
+}
+
+.o_txtotx .outcomeIcon {
+  background: var(--brand-coral);
+  color: white;
+}
+
+.o_split .outcomeIcon {
+  background: var(--brand-powder-blue);
+  color: var(--brand-deep-blue);
+}
+
+.o_dark .outcomeIcon {
+  border: 1.5px dashed var(--text-muted);
+}
+
+.detailCol {
+  color: var(--text-muted);
+}
+
+@media (max-width: 560px) {
+  /* Each channel becomes a small block: label and result, then the detail. */
+  .channels thead {
+    display: none;
+  }
+  .channels tbody tr {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    column-gap: var(--space-2);
+    padding: 6px 0;
+    border-top: 1px solid var(--border);
+  }
+  .channels th,
+  .channels td {
+    padding: 2px 0;
+    border-top: 0;
+  }
+  .channels td.detailCol {
+    grid-column: 1 / -1;
+    font-size: 0.82rem;
+  }
+}
+
 .issues {
   margin: var(--space-3) 0 0;
   padding: 0;

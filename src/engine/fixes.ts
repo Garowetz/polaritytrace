@@ -1,5 +1,5 @@
 import { evaluateLink } from './evaluate';
-import type { CassetteEnd, Catalog, LinkConfig, Side, Verdict } from './types';
+import type { CassetteEnd, Catalog, EndConfig, Footprint, LinkConfig, Side, Verdict } from './types';
 
 // Suggests the simplest change that makes a failing link work. Tries one change
 // at a time (cords first, then mounting, trunk, cassettes) and ranks the ones
@@ -22,6 +22,12 @@ function withEnd(config: LinkConfig, side: Side, patch: Partial<CassetteEnd>): L
   const end = config[side];
   if (end.kind !== 'cassette') return config;
   return { ...config, [side]: { ...end, ...patch } };
+}
+
+function footprintOf(end: EndConfig, catalog: Catalog): Footprint | undefined {
+  if (end.kind === 'cassette') return catalog.cassettes.find((c) => c.id === end.cassette)?.footprint;
+  const c = catalog.optics.find((o) => o.id === end.optic)?.connector;
+  return c === 'MPO-12' || c === 'MPO-16' ? c : undefined;
 }
 
 interface Candidate {
@@ -70,9 +76,16 @@ function candidates(config: LinkConfig, catalog: Catalog): Candidate[] {
   }
 
   const trunk = catalog.trunks.find((t) => t.id === config.cable.trunk);
+  // A cable whose footprint differs from both ends can only be fixed by a
+  // cable of the ends' footprint; otherwise keep the footprint and fibre count.
+  const endPrints = sides.map((s) => footprintOf(config[s], catalog)).filter((f): f is Footprint => Boolean(f));
+  const misfit = trunk ? endPrints.length > 0 && endPrints.every((f) => f !== trunk.footprint) : false;
   for (const t of catalog.trunks) {
-    if (!trunk || t.id === trunk.id || t.footprint !== trunk.footprint || t.litPositions.length !== trunk.litPositions.length) continue;
-    out.push({ message: `Use a ${t.label} instead of the ${trunk.label}.`, config: { ...config, cable: { ...config.cable, trunk: t.id } }, cost: 3 });
+    if (!trunk || t.id === trunk.id) continue;
+    const same = t.footprint === trunk.footprint && t.litPositions.length === trunk.litPositions.length;
+    if (!(same || (misfit && endPrints.includes(t.footprint)))) continue;
+    const label = same ? t.label : `${t.label} (${t.footprint})`;
+    out.push({ message: `Use a ${label} instead of the ${trunk.label}.`, config: { ...config, cable: { ...config.cable, trunk: t.id } }, cost: 3 });
   }
 
   for (const side of sides) {
@@ -81,7 +94,9 @@ function candidates(config: LinkConfig, catalog: Catalog): Candidate[] {
     const current = catalog.cassettes.find((c) => c.id === end.cassette);
     if (!current) continue;
     for (const c of catalog.cassettes) {
-      if (c.fixtureOnly || c.id === current.id || c.footprint !== current.footprint || c.frontMap.length !== current.frontMap.length) continue;
+      const same = c.footprint === current.footprint && c.frontMap.length === current.frontMap.length;
+      const fitsTrunk = trunk !== undefined && current.footprint !== trunk.footprint && c.footprint === trunk.footprint;
+      if (c.fixtureOnly || c.id === current.id || !(same || fitsTrunk)) continue;
       out.push({ message: `Replace the ${hand(side)} cassette with a ${c.label}.`, config: withEnd(config, side, { cassette: c.id }), cost: 4 });
       if (l.kind === 'cassette' && r.kind === 'cassette' && side === 'right') {
         const both = withEnd(withEnd(config, 'left', { cassette: c.id }), 'right', { cassette: c.id });

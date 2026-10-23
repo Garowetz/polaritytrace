@@ -1,4 +1,4 @@
-import { METHOD_NAMES, type Fix, type LinkConfig, type LinkResult, type Step } from '../engine';
+import { METHOD_NAMES, type ChannelOutcome, type Fix, type LinkConfig, type LinkResult, type Step } from '../engine';
 import styles from './Controls.module.css';
 
 const VERDICT_TEXT: Record<LinkResult['verdict'], { icon: string; text: string }> = {
@@ -10,7 +10,23 @@ const VERDICT_TEXT: Record<LinkResult['verdict'], { icon: string; text: string }
 
 const SEVERITY_ORDER = { block: 0, fail: 1, warn: 2, note: 3 } as const;
 
-export function VerdictStrip({ result, fixes, onApply }: { result: LinkResult; fixes: Fix[]; onApply: (c: LinkConfig) => void }) {
+const OUTCOME: Record<ChannelOutcome, { icon: string; text: string }> = {
+  'tx-to-rx': { icon: '✓', text: 'Tx reaches Rx' },
+  'tx-to-tx': { icon: '✕', text: 'Tx hits Tx' },
+  split: { icon: '!', text: 'Only one direction works' },
+  dark: { icon: '○', text: 'No light' },
+};
+
+interface VerdictProps {
+  result: LinkResult;
+  fixes: Fix[];
+  onApply: (c: LinkConfig) => void;
+  /** The channel highlighted on the diagram, if any. */
+  pinned: string | null;
+  onPin: (channelId: string) => void;
+}
+
+export function VerdictStrip({ result, fixes, onApply, pinned, onPin }: VerdictProps) {
   const v = VERDICT_TEXT[result.verdict];
   const ok = result.channels.filter((c) => c.outcome === 'tx-to-rx').length;
   const issues = [...result.issues].sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]).slice(0, 4);
@@ -25,6 +41,36 @@ export function VerdictStrip({ result, fixes, onApply }: { result: LinkResult; f
           {result.channels.length > 0 && ` · ${ok} of ${result.channels.length} channels deliver Tx to Rx`}
         </span>
       </div>
+      {result.channels.length > 0 && (
+        <table className={styles.channels}>
+          <caption className={styles.srOnly}>Every channel. Select a row to highlight it on the diagram.</caption>
+          <thead>
+            <tr>
+              <th scope="col">Channel</th>
+              <th scope="col">Result</th>
+              <th scope="col" className={styles.detailCol}>What happens</th>
+            </tr>
+          </thead>
+          <tbody>
+            {result.channels.map((c) => (
+              <tr key={c.id} className={`${styles[`o_${c.outcome.replace(/-/g, '')}`]} ${pinned === c.id ? styles.pinnedRow : ''}`}>
+                <th scope="row">
+                  <button type="button" className={styles.rowButton} aria-pressed={pinned === c.id} onClick={() => onPin(c.id)}>
+                    {c.label}
+                  </button>
+                </th>
+                <td>
+                  <span className={styles.outcomeIcon} aria-hidden="true">
+                    {OUTCOME[c.outcome].icon}
+                  </span>{' '}
+                  {OUTCOME[c.outcome].text}
+                </td>
+                <td className={styles.detailCol}>{c.message}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
       {issues.length > 0 && (
         <ul className={styles.issues}>
           {issues.map((i, k) => (

@@ -36,6 +36,7 @@ export type BoxKind = 'equipment' | 'optic' | 'cord' | 'cassette' | 'adapter' | 
 export interface BoxGeom {
   id: string;
   kind: BoxKind;
+  side?: Side;
   x: number;
   y: number;
   w: number;
@@ -241,7 +242,7 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
       orientation === 'horizontal'
         ? { x: mid, y: TOP - pad - 12 - (order % 2) * 34 }
         : map(b.kind === 'equipment' || b.kind === 'optic' ? outer : mid, extent / 2);
-    return { id: `${b.side ?? 'mid'}-${b.kind}-${i}`, kind: b.kind, x: Math.min(p0.x, p1.x), y: Math.min(p0.y, p1.y), w: Math.abs(p1.x - p0.x), h: Math.abs(p1.y - p0.y), label: b.label, sub: b.sub, labelAt, underReview: b.underReview };
+    return { id: `${b.side ?? 'mid'}-${b.kind}-${i}`, kind: b.kind, side: b.side, x: Math.min(p0.x, p1.x), y: Math.min(p0.y, p1.y), w: Math.abs(p1.x - p0.x), h: Math.abs(p1.y - p0.y), label: b.label, sub: b.sub, labelAt, underReview: b.underReview };
   });
 
   // 3. Fibres: one per traced direction of every channel.

@@ -40,4 +40,12 @@ describe('fix suggestions', () => {
     const broken = link(cas('cas-u1-12', 'lc-ab'), { trunk: 'trunk-a-12', ...SM }, cas('cas-u1-12', 'lc-ab'));
     for (const f of suggestFixes(broken, catalog, 20)) expect(['PASS', 'WARN']).toContain(run(f.config).verdict);
   });
+
+  it('MPO-16 trunk between MPO-12 cassettes: suggests an MPO-12 trunk', () => {
+    const config = link(cas('cas-a-12', 'lc-ab'), { trunk: 'trunk-b-16', ...SM }, cas('cas-a-12', 'lc-aa'));
+    const fixes = suggestFixes(config, catalog);
+    expect(fixes.length).toBeGreaterThan(0);
+    expect(fixes[0].message).toBe('Use a Type A trunk (MPO-12) instead of the Type B trunk, 16F.');
+    expect(fixes[0].verdict).toBe('PASS');
+  });
 });

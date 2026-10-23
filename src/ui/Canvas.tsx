@@ -12,11 +12,13 @@ interface Props {
   /** Hop index the step control has reached, or null for the whole link. */
   stepHop: number | null;
   animate: boolean;
+  /** Tapping a drawn component opens its picker. */
+  onBox?: (box: BoxGeom) => void;
 }
 
 const PULSE_SECONDS = 3.2;
 
-export function Canvas({ geom, focus, onHover, onPin, stepHop, animate }: Props) {
+export function Canvas({ geom, focus, onHover, onPin, stepHop, animate, onBox }: Props) {
   const lit = useMemo(() => {
     if (!focus) return null;
     if (focus.kind === 'channel') return new Set([focus.id]);
@@ -53,7 +55,7 @@ export function Canvas({ geom, focus, onHover, onPin, stepHop, animate }: Props)
       </defs>
 
       {geom.boxes.map((b) => (
-        <BoxShape key={b.id} box={b} />
+        <BoxShape key={b.id} box={b} onBox={onBox} />
       ))}
 
       <g className={lit ? styles.focusing : undefined}>
@@ -108,7 +110,7 @@ export function Canvas({ geom, focus, onHover, onPin, stepHop, animate }: Props)
 
       {/* Labels sit above the pulses so moving light never covers text. */}
       {geom.boxes.map((b) => (
-        <BoxLabel key={b.id} box={b} vertical={v} />
+        <BoxLabel key={b.id} box={b} vertical={v} onBox={onBox} />
       ))}
 
       {geom.stations.map((s) => (
@@ -127,20 +129,55 @@ export function Canvas({ geom, focus, onHover, onPin, stepHop, animate }: Props)
   );
 }
 
-function BoxShape({ box }: { box: BoxGeom }) {
+const NAMES: Record<BoxGeom['kind'], string> = {
+  equipment: 'equipment',
+  optic: 'optic',
+  cord: 'patch cords',
+  cassette: 'cassette',
+  adapter: 'cassette',
+  trunk: 'MPO cable',
+};
+
+function boxHandlers(box: BoxGeom, onBox?: (b: BoxGeom) => void) {
+  if (!onBox) return {};
+  return {
+    role: 'button',
+    tabIndex: 0,
+    'aria-label': `Change the ${NAMES[box.kind]}: ${box.label}`,
+    onClick: (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onBox(box);
+    },
+    onKeyDown: (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        onBox(box);
+      }
+    },
+  };
+}
+
+function BoxShape({ box, onBox }: { box: BoxGeom; onBox?: (b: BoxGeom) => void }) {
   return (
-    <g className={`${styles.box} ${styles[`box_${box.kind}`]} ${box.underReview ? styles.review : ''}`}>
+    <g className={`${styles.box} ${styles[`box_${box.kind}`]} ${box.underReview ? styles.review : ''} ${onBox ? styles.pickable : ''}`} {...boxHandlers(box, onBox)}>
       <rect x={box.x} y={box.y} width={box.w} height={box.h} rx={box.kind === 'trunk' ? 16 : 12} />
     </g>
   );
 }
 
-function BoxLabel({ box, vertical }: { box: BoxGeom; vertical: boolean }) {
+function BoxLabel({ box, vertical, onBox }: { box: BoxGeom; vertical: boolean; onBox?: (b: BoxGeom) => void }) {
   const pillW = Math.max(box.label.length, (box.sub ?? '').length) * 6.4 + 18;
   return (
     <g className={`${styles.box} ${styles[`box_${box.kind}`]}`}>
       {box.kind !== 'adapter' || !vertical ? (
-        <g className={styles.boxLabel} transform={`translate(${box.labelAt.x} ${box.labelAt.y})`}>
+        <g
+          className={`${styles.boxLabel} ${onBox ? styles.pickable : ''}`}
+          transform={`translate(${box.labelAt.x} ${box.labelAt.y})`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onBox?.(box);
+          }}
+        >
           {vertical && <rect x={-pillW / 2} y={-15} width={pillW} height={box.sub ? 34 : 22} rx={8} className={styles.pill} />}
           <text textAnchor="middle" className={styles.labelMain}>
             {box.label}

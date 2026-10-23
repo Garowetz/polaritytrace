@@ -1,11 +1,14 @@
 import type { ReactNode } from 'react';
-import { cassetteEnd, opticEnd, type Preset } from '../data/presets';
-import { GENERIC_PORT } from '../data/optics';
-import type { CableConfig, CassetteEnd, Catalog, EndConfig, Fibre, LinkConfig, Polish, Side } from '../engine';
+import type { Preset } from '../data/presets';
+import type { CableConfig, Catalog, Fibre, LinkConfig, Polish, Side } from '../engine';
 import styles from './Builder.module.css';
+import { applyChoice, cordsFor, pickableCassettes, pickableEquipment, pickableMpoOptics, selectedId, sideTitle, type PickerTarget } from './choices';
+import { CassetteMini, CordMini, OpticMini, TrunkMini } from './MiniDiagram';
+import { Picker, type TileGroup } from './Picker';
 
-// Three independent pickers: End A, the MPO cable, End B. Every change is a
-// new LinkConfig; the engine decides what works.
+// Three independent parts: End A, the MPO cable, End B. Each part opens a
+// card of picture tiles. Every change is a new LinkConfig; the engine decides
+// what works.
 
 interface Props {
   catalog: Catalog;
@@ -13,23 +16,61 @@ interface Props {
   onChange: (c: LinkConfig) => void;
   presets: readonly Preset[];
   activePreset: string | null;
+  picker: PickerTarget | null;
+  onPicker: (t: PickerTarget | null) => void;
 }
 
 const sameConfig = (a: LinkConfig, b: LinkConfig) => JSON.stringify(a) === JSON.stringify(b);
 export const presetFor = (presets: readonly Preset[], c: LinkConfig) => presets.find((p) => sameConfig(p.config, c)) ?? null;
 
-export function Builder({ catalog, config, onChange, presets, activePreset }: Props) {
-  const setEnd = (side: Side, end: EndConfig) => onChange({ ...config, [side]: end });
-  const fibreOf = (end: EndConfig): Fibre | null => {
-    const id = end.kind === 'mpoOptic' ? end.optic : end.equipment;
-    return catalog.optics.find((o) => o.id === id)?.fibre ?? null;
+const fibreName = (f: Fibre | null) => (f === 'SMF' ? 'Singlemode' : f === 'MMF' ? 'Multimode' : '');
+const footprintLabel = (positions: number, lit: number) => `MPO-${positions} · ${lit}F`;
+
+export function Builder({ catalog, config, onChange, presets, activePreset, picker, onPicker }: Props) {
+  const nameOf = (t: PickerTarget): { label: string; sub: string; review: boolean } => {
+    if (t.what === 'trunk') {
+      const tr = catalog.trunks.find((x) => x.id === config.cable.trunk)!;
+      return { label: tr.label, sub: footprintLabel(tr.positions, tr.litPositions.length), review: !tr.verified };
+    }
+    const end = config[t.side];
+    if (t.what === 'part') {
+      if (end.kind === 'mpoOptic') {
+        const o = catalog.optics.find((x) => x.id === end.optic)!;
+        return { label: o.label, sub: `MPO optic · ${o.connector}`, review: !o.verified };
+      }
+      const c = catalog.cassettes.find((x) => x.id === end.cassette)!;
+      return { label: c.label, sub: `${footprintLabel(c.positions, c.litPositions.length)} → ${c.frontMap.length} × ${c.frontConnector}`, review: !c.verified };
+    }
+    if (end.kind !== 'cassette') return { label: '', sub: '', review: false };
+    if (t.what === 'cord') {
+      const c = catalog.cords.find((x) => x.id === end.cord)!;
+      return { label: c.label, sub: `${c.ends.cassette} to ${c.ends.equipment}`, review: !c.verified };
+    }
+    const o = catalog.optics.find((x) => x.id === end.equipment)!;
+    return { label: o.generic ? 'Equipment port' : `${o.label} optics`, sub: o.generic ? 'Tx | Rx' : `${o.formFactor} · ${fibreName(o.fibre)}`, review: !o.verified };
   };
-  // Picking an optic that needs a fibre type moves the cable to it.
-  const setEndFollowFibre = (side: Side, end: EndConfig) => {
-    const f = fibreOf(end);
-    const next = { ...config, [side]: end };
-    if (f && f !== config.cable.fibre) next.cable = { ...config.cable, fibre: f, polish: undefined };
-    onChange(next);
+
+  const endCard = (side: Side) => {
+    const end = config[side];
+    return (
+      <Card title={sideTitle(side)}>
+        <PartButton field="Part" {...nameOf({ what: 'part', side })} onClick={() => onPicker({ what: 'part', side })} />
+        {end.kind === 'cassette' && (
+          <>
+            <PartButton field="Patch cords" {...nameOf({ what: 'cord', side })} onClick={() => onPicker({ what: 'cord', side })} />
+            <PartButton field="Plugged into" {...nameOf({ what: 'equipment', side })} onClick={() => onPicker({ what: 'equipment', side })} />
+            <label className={styles.check}>
+              <input
+                type="checkbox"
+                checked={end.mount === 'inverted'}
+                onChange={(e) => onChange({ ...config, [side]: { ...end, mount: e.target.checked ? 'inverted' : undefined } })}
+              />
+              Mounted upside down
+            </label>
+          </>
+        )}
+      </Card>
+    );
   };
 
   return (
@@ -54,13 +95,117 @@ export function Builder({ catalog, config, onChange, presets, activePreset }: Pr
           </select>
         </label>
       </div>
+
       <div className={styles.parts}>
-        <EndPicker title="End A" catalog={catalog} end={config.left} onChange={(e) => setEndFollowFibre('left', e)} onTweak={(e) => setEnd('left', e)} />
-        <CablePicker catalog={catalog} cable={config.cable} onChange={(cable) => onChange({ ...config, cable })} />
-        <EndPicker title="End B" catalog={catalog} end={config.right} onChange={(e) => setEndFollowFibre('right', e)} onTweak={(e) => setEnd('right', e)} />
+        {endCard('left')}
+        <CableCard config={config} onChange={onChange} trunk={nameOf({ what: 'trunk' })} onPick={() => onPicker({ what: 'trunk' })} />
+        {endCard('right')}
       </div>
+
+      {picker && (
+        <Picker
+          key={JSON.stringify(picker)}
+          {...pickerContent(catalog, config, picker)}
+          selected={selectedId(config, picker)}
+          onPick={(id) => onChange(applyChoice(catalog, config, picker, id))}
+          onClose={() => onPicker(null)}
+        />
+      )}
     </section>
   );
+}
+
+function pickerContent(catalog: Catalog, config: LinkConfig, t: PickerTarget): { title: string; groups: TileGroup[] } {
+  if (t.what === 'trunk') {
+    const prints = [...new Set(catalog.trunks.map((x) => x.footprint))];
+    return {
+      title: 'Choose the MPO cable',
+      groups: prints.map((fp) => ({
+        title: fp === 'MPO-16' ? 'MPO-16 (does not mate with MPO-12)' : fp,
+        tiles: catalog.trunks
+          .filter((x) => x.footprint === fp)
+          .map((x) => ({
+            id: x.id,
+            label: x.label,
+            blurb: x.blurb,
+            learnMore: [x.hint, x.learnMore].filter(Boolean).join(' ') || undefined,
+            tag: footprintLabel(x.positions, x.litPositions.length),
+            underReview: !x.verified,
+            picture: <TrunkMini trunk={x} />,
+          })),
+      })),
+    };
+  }
+  const where = sideTitle(t.side);
+  if (t.what === 'part') {
+    return {
+      title: `Choose ${where}`,
+      groups: [
+        {
+          title: 'Cassettes and modules',
+          tiles: pickableCassettes(catalog).map((x) => ({
+            id: x.id,
+            label: x.label,
+            blurb: x.blurb,
+            learnMore: x.learnMore,
+            tag: footprintLabel(x.positions, x.litPositions.length),
+            underReview: !x.verified,
+            picture: <CassetteMini cassette={x} />,
+          })),
+        },
+        {
+          title: 'MPO optics, plugged straight into the cable',
+          tiles: pickableMpoOptics(catalog).map((x) => ({
+            id: x.id,
+            label: x.label,
+            blurb: x.blurb,
+            learnMore: x.learnMore,
+            tag: `${x.connector} · ${fibreName(x.fibre)}`,
+            underReview: !x.verified,
+            picture: <OpticMini optic={x} />,
+          })),
+        },
+      ],
+    };
+  }
+  const end = config[t.side];
+  if (end.kind !== 'cassette') return { title: where, groups: [] };
+  if (t.what === 'cord') {
+    return {
+      title: `${where} patch cords`,
+      groups: [
+        {
+          title: 'Patch cords',
+          tiles: cordsFor(catalog, end.cassette, end.equipment).map((x) => ({
+            id: x.id,
+            label: x.label,
+            blurb: x.blurb,
+            learnMore: x.learnMore,
+            tag: `${x.ends.cassette} to ${x.ends.equipment}`,
+            underReview: !x.verified,
+            picture: <CordMini cord={x} />,
+          })),
+        },
+      ],
+    };
+  }
+  return {
+    title: `What ${where} plugs into`,
+    groups: [
+      {
+        title: 'Equipment',
+        tiles: pickableEquipment(catalog).map((x) => ({
+          id: x.id,
+          label: x.generic ? 'Equipment port' : `${x.label} optics`,
+          blurb: x.blurb,
+          learnMore: x.learnMore,
+          tag: x.generic ? 'Tx | Rx' : fibreName(x.fibre),
+          underReview: !x.verified,
+          picture: <OpticMini optic={x} />,
+        })),
+      },
+    ],
+  };
 }
 
 function Card({ title, children }: { title: string; children: ReactNode }) {
@@ -72,148 +217,88 @@ function Card({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
+function PartButton({ field, label, sub, review, onClick }: { field: string; label: string; sub: string; review: boolean; onClick: () => void }) {
   return (
-    <label className={styles.field}>
+    <div className={styles.field}>
+      <span className={styles.fieldLabel}>{field}</span>
+      <button type="button" className={styles.part} onClick={onClick} aria-haspopup="dialog" aria-label={`${field}: ${label}. Change`}>
+        <span className={styles.partText}>
+          <span className={styles.partLabel}>
+            {label}
+            {review ? ' *' : ''}
+          </span>
+          {sub && <span className={styles.partSub}>{sub}</span>}
+        </span>
+        <span className={styles.chevron} aria-hidden="true">
+          ›
+        </span>
+      </button>
+    </div>
+  );
+}
+
+function Segmented<T extends string>({ label, value, options, onChange }: { label: string; value: T; options: { value: T; label: string }[]; onChange: (v: T) => void }) {
+  return (
+    <div className={styles.field} role="radiogroup" aria-label={label}>
       <span className={styles.fieldLabel}>{label}</span>
-      {children}
-    </label>
+      <div className={styles.segmented}>
+        {options.map((o) => (
+          <button key={o.value} type="button" role="radio" aria-checked={o.value === value} onClick={() => onChange(o.value)}>
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
-interface EndProps {
-  title: string;
-  catalog: Catalog;
-  end: EndConfig;
-  /** A change of part (may move the cable's fibre type). */
-  onChange: (e: EndConfig) => void;
-  /** A change that keeps the part (cord, mount). */
-  onTweak: (e: EndConfig) => void;
-}
-
-function EndPicker({ title, catalog, end, onChange, onTweak }: EndProps) {
-  const cassettes = catalog.cassettes.filter((c) => !c.fixtureOnly);
-  const mpoOptics = catalog.optics.filter((o) => o.inV1 && o.mpo && !o.generic);
-  const duplexOptics = catalog.optics.filter((o) => o.inV1 && !o.mpo);
-  const value = end.kind === 'cassette' ? `cas:${end.cassette}` : `opt:${end.optic}`;
-
-  const cas = end.kind === 'cassette' ? catalog.cassettes.find((c) => c.id === end.cassette) : undefined;
-  const equipmentConnector = (id: string) => catalog.optics.find((o) => o.id === id)?.connector ?? 'LC';
-  const cordsFor = (front: string, equipment: string) =>
-    catalog.cords.filter((c) => c.ends.cassette === front && c.ends.equipment === equipmentConnector(equipment));
-  // Keep the same kind of cord (standard or A-to-A) when the connector changes.
-  const fitCord = (current: string | undefined, front: string, equipment: string) => {
-    const fits = cordsFor(front, equipment);
-    if (fits.some((c) => c.id === current)) return current!;
-    const was = catalog.cords.find((c) => c.id === current);
-    return (fits.find((c) => c.standard === (was?.standard ?? true)) ?? fits[0])?.id ?? 'lc-ab';
-  };
-
-  const pickPart = (v: string) => {
-    const [kind, id] = [v.slice(0, 3), v.slice(4)];
-    if (kind === 'opt') return onChange(opticEnd(id));
-    const def = catalog.cassettes.find((c) => c.id === id)!;
-    const prev: Partial<CassetteEnd> = end.kind === 'cassette' ? end : {};
-    const equipment = prev.equipment ?? GENERIC_PORT;
-    onChange(cassetteEnd(id, fitCord(prev.cord, def.frontConnector, equipment), { equipment, ...(prev.mount ? { mount: prev.mount } : {}) }));
-  };
-
-  return (
-    <Card title={title}>
-      <Field label="Part">
-        <select value={value} onChange={(e) => pickPart(e.target.value)}>
-          <optgroup label="Cassettes">
-            {cassettes.map((c) => (
-              <option key={c.id} value={`cas:${c.id}`}>
-                {c.label}
-              </option>
-            ))}
-          </optgroup>
-          <optgroup label="MPO optics (plugged straight in)">
-            {mpoOptics.map((o) => (
-              <option key={o.id} value={`opt:${o.id}`}>
-                {o.label} · {o.connector}
-              </option>
-            ))}
-          </optgroup>
-        </select>
-      </Field>
-      {end.kind === 'cassette' && cas && (
-        <>
-          <Field label="Patch cords">
-            <select value={end.cord} onChange={(e) => onTweak({ ...end, cord: e.target.value })}>
-              {cordsFor(cas.frontConnector, end.equipment).map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Plugged into">
-            <select
-              value={end.equipment}
-              onChange={(e) => {
-                const equipment = e.target.value;
-                const { patchedPorts: _drop, ...rest } = end;
-                onChange({ ...rest, equipment, cord: fitCord(end.cord, cas.frontConnector, equipment) });
-              }}
-            >
-              {duplexOptics.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.generic ? 'Equipment port (Tx | Rx)' : `${o.label} optics`}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <label className={styles.check}>
-            <input
-              type="checkbox"
-              checked={end.mount === 'inverted'}
-              onChange={(e) => onTweak({ ...end, mount: e.target.checked ? 'inverted' : undefined })}
-            />
-            Mounted upside down
-          </label>
-        </>
-      )}
-    </Card>
-  );
-}
-
-function CablePicker({ catalog, cable, onChange }: { catalog: Catalog; cable: CableConfig; onChange: (c: CableConfig) => void }) {
-  const groups = [...new Set(catalog.trunks.map((t) => t.positions))];
+function CableCard({
+  config,
+  onChange,
+  trunk,
+  onPick,
+}: {
+  config: LinkConfig;
+  onChange: (c: LinkConfig) => void;
+  trunk: { label: string; sub: string; review: boolean };
+  onPick: () => void;
+}) {
+  const cable = config.cable;
   const fibre = cable.fibre ?? 'SMF';
+  const set = (c: CableConfig) => onChange({ ...config, cable: c });
+  type PolishChoice = Polish | 'usual';
   return (
     <Card title="MPO cable">
-      <Field label="Trunk">
-        <select value={cable.trunk} onChange={(e) => onChange({ ...cable, trunk: e.target.value })}>
-          {groups.map((n) => (
-            <optgroup key={n} label={`MPO-${n}`}>
-              {catalog.trunks
-                .filter((t) => t.positions === n)
-                .map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.label} · MPO-{t.positions} · {t.litPositions.length}F
-                  </option>
-                ))}
-            </optgroup>
-          ))}
-        </select>
-      </Field>
-      <div className={styles.row}>
-        <Field label="Fibre">
-          <select value={fibre} onChange={(e) => onChange({ ...cable, fibre: e.target.value as Fibre, polish: undefined })}>
-            <option value="SMF">Singlemode</option>
-            <option value="MMF">Multimode</option>
-          </select>
-        </Field>
-        <Field label="Polish">
-          <select value={cable.polish ?? ''} onChange={(e) => onChange({ ...cable, polish: (e.target.value || undefined) as Polish | undefined })}>
-            <option value="">Usual ({fibre === 'SMF' ? 'APC' : 'UPC'})</option>
-            <option value="APC">APC</option>
-            <option value="UPC">UPC</option>
-          </select>
-        </Field>
-      </div>
+      <PartButton field="Trunk" {...trunk} onClick={onPick} />
+      <Segmented<Fibre>
+        label="Fibre"
+        value={fibre}
+        options={[
+          { value: 'SMF', label: 'Singlemode' },
+          { value: 'MMF', label: 'Multimode' },
+        ]}
+        onChange={(f) => set({ ...cable, fibre: f, polish: undefined })}
+      />
+      <Segmented<PolishChoice>
+        label="Polish"
+        value={cable.polish ?? 'usual'}
+        options={[
+          { value: 'usual', label: `Usual (${fibre === 'SMF' ? 'APC' : 'UPC'})` },
+          { value: 'APC', label: 'APC' },
+          { value: 'UPC', label: 'UPC' },
+        ]}
+        onChange={(p) => set({ ...cable, polish: p === 'usual' ? undefined : p })}
+      />
     </Card>
   );
 }
+
+/** Which picker a component drawn on the canvas opens. */
+export function pickerForBox(kind: string, side: Side | undefined): PickerTarget | null {
+  if (kind === 'trunk') return { what: 'trunk' };
+  if (!side) return null;
+  if (kind === 'cord') return { what: 'cord', side };
+  if (kind === 'equipment') return { what: 'equipment', side };
+  return { what: 'part', side };
+}
+

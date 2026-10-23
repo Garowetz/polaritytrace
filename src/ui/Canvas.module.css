@@ -57,6 +57,27 @@
   pointer-events: none;
 }
 
+.boxLabel.pickable {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.pickable {
+  cursor: pointer;
+  outline: none;
+}
+
+.box.pickable:hover > rect:first-child,
+.box.pickable:focus-visible > rect:first-child {
+  stroke: var(--text);
+  stroke-width: 1.6;
+}
+
+.box.pickable:focus-visible > rect:first-child {
+  stroke: var(--focus);
+  stroke-width: 2.4;
+}
+
 .pill {
   fill: var(--surface-raised);
   stroke: var(--border);

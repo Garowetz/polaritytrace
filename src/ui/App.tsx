@@ -4,7 +4,8 @@ import { DEFAULT_PRESET, presets } from '../data/presets';
 import { evaluateLink, suggestFixes, UnknownComponentError, walkSteps, type LinkConfig } from '../engine';
 import styles from './App.module.css';
 import { Canvas, type Focus } from './Canvas';
-import { Builder, presetFor } from './Builder';
+import { Builder, pickerForBox, presetFor } from './Builder';
+import type { PickerTarget } from './choices';
 import { StepControls, VerdictStrip } from './Controls';
 import { layoutLink } from './layout';
 import { useMediaQuery } from './useMediaQuery';
@@ -25,6 +26,7 @@ export function App() {
   const [pinned, setPinned] = useState<Focus | null>(null);
   const [step, setStep] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
+  const [picker, setPicker] = useState<PickerTarget | null>(null);
 
   const vertical = useMediaQuery('(max-width: 760px)');
   const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
@@ -88,7 +90,7 @@ export function App() {
       </header>
 
       <main className={styles.main}>
-        <Builder catalog={catalog} config={config} onChange={change} presets={presets} activePreset={preset?.id ?? null} />
+        <Builder catalog={catalog} config={config} onChange={change} presets={presets} activePreset={preset?.id ?? null} picker={picker} onPicker={setPicker} />
         {preset && <p className={styles.blurb}>{preset.blurb}</p>}
 
         <section className={styles.stage} aria-label="Link diagram">
@@ -101,6 +103,7 @@ export function App() {
               onPin={(f) => setPinned((cur) => (cur && cur.kind === f.kind && cur.id === f.id ? null : f))}
               stepHop={stepHop}
               animate={!reducedMotion}
+              onBox={(b) => setPicker(pickerForBox(b.kind, b.side))}
             />
           </div>
           <p className={styles.focusLine} aria-live="polite">
@@ -130,7 +133,13 @@ export function App() {
           }}
         />
 
-        <VerdictStrip result={result} fixes={fixes} onApply={change} />
+        <VerdictStrip
+          result={result}
+          fixes={fixes}
+          onApply={change}
+          pinned={pinned?.kind === 'channel' ? pinned.id : null}
+          onPin={(id) => setPinned((cur) => (cur?.kind === 'channel' && cur.id === id ? null : { kind: 'channel', id }))}
+        />
       </main>
     </div>
   );
