@@ -40,6 +40,9 @@ The owner works in sales, not engineering. Explain things plainly, give clear "h
 - Work in small steps and run tests before saying a step is done.
 - Commit with clear messages. Deploy to GitHub Pages with GitHub Actions.
 
+## Progress
+`docs/STATUS.md` says where the build is, the decisions made, open questions and the next step. Read it at the start of a session and update it after each step.
+
 ## Folders
 - `/brand`: brand guide and assets (colours and fonts only)
 - `/src/engine`: polarity engine plus tests
