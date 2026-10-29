@@ -1,5 +1,5 @@
 import { fibreColour } from '../data/colours';
-import { resolveLink, trace, type Catalog, type ChannelOutcome, type FibreTrace, type Hop, type LinkConfig, type LinkResult, type Side } from '../engine';
+import { resolveLink, trace, type Catalog, type ChannelOutcome, type FibreTrace, type Hop, type LinkConfig, type LinkResult, type PolarityType, type Side } from '../engine';
 import type { ResolvedEnd } from '../engine/resolve';
 
 // Pure geometry: turns engine output into points and paths. No React here, and
@@ -45,6 +45,8 @@ export interface BoxGeom {
   sub?: string;
   labelAt: Point;
   underReview: boolean;
+  /** Small notes drawn below the box (horizontal) or beside it (vertical). */
+  notes?: { x: number; y: number; text: string; anchor: 'start' | 'end'; tick: Point[] }[];
 }
 
 export interface FibreGeom {
@@ -75,9 +77,30 @@ export interface LinkGeom {
 }
 
 const PITCH = 22;
-const ALONG = { margin: 120, cord: 190, cassette: 180, adapter: 64, trunk: 320 };
-const TOP = 96; // room for component labels above (horizontal)
+const ALONG = { margin: 120, cord: 190, cassette: 180, adapter: 100, trunk: 320 };
+const TOP = 104; // room for component labels above (horizontal)
 const GUTTER = 24;
+// How far each kind of box reaches past the outer fibres. The rear MPO and the
+// cable are a little narrower than the module, so they read as smaller parts.
+const PAD: Record<BoxKind, number> = { equipment: 18, optic: 18, cord: 18, cassette: 24, adapter: 11, trunk: 12 };
+// Gap where a cord or the cable meets a module, so each part reads on its own.
+const GAP = 8;
+// How far the cable box runs past its end positions.
+const TRUNK_OVERHANG = 6;
+// Room beside the vertical drawing for the key notes.
+const NOTE_ROOM = 112;
+
+type Key = 'up' | 'down';
+/** Which way the key points on each side of a cassette's rear adapter. */
+export function adapterKeys(adapter: PolarityType, inverted: boolean): { module: Key; cable: Key } {
+  // Type A (key-up/key-down): the two keys face opposite ways.
+  // Type B (key-up/key-up): both face the same way.
+  // Turning the cassette over turns the adapter over too.
+  const keys: { module: Key; cable: Key } = adapter === 'B' ? { module: 'up', cable: 'up' } : { module: 'up', cable: 'down' };
+  if (!inverted) return keys;
+  const flipKey = (k: Key): Key => (k === 'up' ? 'down' : 'up');
+  return { module: flipKey(keys.module), cable: flipKey(keys.cable) };
+}
 
 const slotKey = (h: Hop) => (h.at === 'equipment' || h.at === 'front' ? `${h.port}${h.pos}` : `${h.pos}`);
 export const slotId = (h: Hop) => `${h.side}:${h.at}|${slotKey(h)}`;
@@ -139,11 +162,12 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
   // 1. Stations along the link. Each end is placed by its distance outward
   //    from its trunk end; dir = −1 on the left, +1 on the right.
   type Raw = { key: StationKey; along: number; slots: RawSlot[]; labelDir: -1 | 1; kind: Hop['at'] };
-  type BoxSpec = { kind: BoxKind; side?: Side; a0: number; a1: number; label: string; sub?: string; underReview: boolean };
+  type Keys = ReturnType<typeof adapterKeys>;
+  type BoxSpec = { kind: BoxKind; side?: Side; a0: number; a1: number; label: string; sub?: string; underReview: boolean; keys?: Keys };
   const endParts = (side: Side) => {
     const end = link[side];
     const st: { kind: Hop['at']; dist: number; slots: RawSlot[]; labelOut: boolean }[] = [];
-    const bx: { kind: BoxKind; d0: number; d1: number; label: string; sub?: string; underReview: boolean }[] = [];
+    const bx: { kind: BoxKind; d0: number; d1: number; label: string; sub?: string; underReview: boolean; keys?: Keys }[] = [];
     if (end.kind === 'cassette') {
       const ports = end.def.frontMap.map((f) => f.port);
       const patched = ports.filter((p) => end.patched.has(p));
@@ -158,16 +182,24 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
       const cord = end.cordFor(patched[0] ?? 1);
       const eqLabel = patched.length > 1 && !end.equipment.generic ? `${end.equipment.label} × ${patched.length}` : end.equipment.label;
       bx.push(
-        { kind: 'adapter', d0: 8, d1: dInt - 10, label: end.def.rearAdapter === 'B' ? 'Key-up/key-up' : 'Key-up/key-down', underReview: false },
+        {
+          kind: 'adapter',
+          d0: TRUNK_OVERHANG + GAP + 10,
+          d1: dInt - 16,
+          label: end.def.rearAdapter === 'B' ? 'Key-up/key-up' : 'Key-up/key-down',
+          underReview: false,
+          keys: adapterKeys(end.def.rearAdapter, end.mount === 'inverted'),
+        },
         {
           kind: 'cassette',
-          d0: dInt - 10,
+          // The module outline holds its rear MPO adapter.
+          d0: TRUNK_OVERHANG + GAP,
           d1: dFront + 10,
           label: end.def.label,
           sub: `${footprintLabel(end.def.positions, end.def.litPositions.length)} → ${ports.length} × ${end.def.frontConnector}`,
           underReview: !end.def.verified,
         },
-        { kind: 'cord', d0: dFront + 10, d1: dEq - 10, label: cord.label, sub: 'patch cords', underReview: !cord.verified },
+        { kind: 'cord', d0: dFront + 10 + GAP, d1: dEq - 10, label: cord.label, sub: 'patch cords', underReview: !cord.verified },
         {
           kind: 'equipment',
           d0: dEq - 10,
@@ -200,13 +232,13 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
     for (const s of parts.st) {
       raw.push({ key: `${side}:${s.kind}` as StationKey, along: anchor + dir * s.dist, slots: s.slots, labelDir: (s.labelOut ? dir : -dir) as -1 | 1, kind: s.kind });
     }
-    for (const b of parts.bx) boxSpecs.push({ kind: b.kind, side, a0: anchor + dir * b.d0, a1: anchor + dir * b.d1, label: b.label, sub: b.sub, underReview: b.underReview });
+    for (const b of parts.bx) boxSpecs.push({ kind: b.kind, side, a0: anchor + dir * b.d0, a1: anchor + dir * b.d1, label: b.label, sub: b.sub, underReview: b.underReview, keys: b.keys });
   };
   place('left', L, trunkL, -1);
   const trunkSlots = () => positionSlots(trunk.positions, trunk.litPositions);
   raw.push({ key: 'left:trunk', along: trunkL, slots: trunkSlots(), labelDir: 1, kind: 'trunk' });
   raw.push({ key: 'right:trunk', along: trunkR, slots: trunkSlots(), labelDir: -1, kind: 'trunk' });
-  boxSpecs.push({ kind: 'trunk', a0: trunkL + 6, a1: trunkR - 6, label: trunk.label, sub: footprintLabel(trunk.positions, trunk.litPositions.length), underReview: !trunk.verified });
+  boxSpecs.push({ kind: 'trunk', a0: trunkL - TRUNK_OVERHANG, a1: trunkR + TRUNK_OVERHANG, label: trunk.label, sub: footprintLabel(trunk.positions, trunk.litPositions.length), underReview: !trunk.verified });
   place('right', R, trunkR, 1);
   raw.sort((x, y) => x.along - y.along);
 
@@ -228,23 +260,60 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
   });
   const slotById = new Map(stations.flatMap((s) => s.slots.map((x) => [x.id, x] as const)));
 
-  const pad = 18;
+  // Labels above the drawing alternate height so neighbours never collide.
+  // Adapters carry their key notes below instead.
+  const labelled = boxSpecs.filter((b) => b.kind !== 'adapter').sort((x, y) => Math.min(x.a0, x.a1) - Math.min(y.a0, y.a1));
+  // Adapters draw after (on top of) the module outline that holds them.
+  boxSpecs.sort((x, y) => Number(x.kind === 'adapter') - Number(y.kind === 'adapter'));
   const boxes: BoxGeom[] = boxSpecs.map((b, i) => {
+    const pad = PAD[b.kind];
     const lo = Math.min(b.a0, b.a1);
     const hi = Math.max(b.a0, b.a1);
     const p0 = map(lo, -pad);
     const p1 = map(hi, extent + pad);
     const mid = (lo + hi) / 2;
-    const order = [...boxSpecs].sort((x, y) => Math.min(x.a0, x.a1) - Math.min(y.a0, y.a1)).indexOf(b);
+    const order = Math.max(0, labelled.indexOf(b));
     // Vertical: end boxes carry their label at the outer edge, clear of the
     // Tx/Rx and port labels; the rest sit mid-box on an opaque pill.
     const outer = b.a1 - Math.sign(b.a1 - b.a0) * 24;
     const labelAt =
       orientation === 'horizontal'
-        ? { x: mid, y: TOP - pad - 12 - (order % 2) * 34 }
+        ? { x: mid, y: TOP - PAD.cassette - 18 - (order % 2) * 34 }
         : map(b.kind === 'equipment' || b.kind === 'optic' ? outer : mid, extent / 2);
-    return { id: `${b.side ?? 'mid'}-${b.kind}-${i}`, kind: b.kind, side: b.side, x: Math.min(p0.x, p1.x), y: Math.min(p0.y, p1.y), w: Math.abs(p1.x - p0.x), h: Math.abs(p1.y - p0.y), label: b.label, sub: b.sub, labelAt, underReview: b.underReview };
+    return {
+      id: `${b.side ?? 'mid'}-${b.kind}-${i}`,
+      kind: b.kind,
+      side: b.side,
+      x: Math.min(p0.x, p1.x),
+      y: Math.min(p0.y, p1.y),
+      w: Math.abs(p1.x - p0.x),
+      h: Math.abs(p1.y - p0.y),
+      label: b.label,
+      sub: b.sub,
+      labelAt,
+      underReview: b.underReview,
+      notes: b.keys ? keyNotes(b.a1, b.a0, b.keys, pad) : undefined,
+    };
   });
+
+  // Key notes: one at the module side of the adapter (a1), one at the cable
+  // side (a0), each running away from the adapter so they read as two parts.
+  function keyNotes(moduleEdge: number, cableEdge: number, keys: Keys, pad: number): NonNullable<BoxGeom['notes']> {
+    const towardModule = Math.sign(moduleEdge - cableEdge);
+    const note = (edge: number, text: string, away: number) => {
+      if (orientation === 'horizontal') {
+        const y0 = TOP + extent + pad;
+        return { x: edge, y: y0 + 22, text, anchor: (away < 0 ? 'end' : 'start') as 'start' | 'end', tick: [{ x: edge, y: y0 }, { x: edge, y: y0 + 12 }] };
+      }
+      const x0 = GUTTER + extent + pad;
+      const p = map(edge, 0);
+      return { x: x0 + 18, y: p.y, text, anchor: 'start' as const, tick: [{ x: x0, y: p.y }, { x: x0 + 12, y: p.y }] };
+    };
+    return [
+      note(moduleEdge, `Module key ${keys.module}`, towardModule),
+      note(cableEdge, `Cable key ${keys.cable}`, -towardModule),
+    ];
+  }
 
   // 3. Fibres: one per traced direction of every channel.
   const fibres: FibreGeom[] = [];
@@ -301,7 +370,7 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
     }
   }
 
-  const width = orientation === 'horizontal' ? total : GUTTER * 2 + extent;
+  const width = orientation === 'horizontal' ? total : GUTTER * 2 + extent + NOTE_ROOM;
   const height = orientation === 'horizontal' ? TOP + extent + 56 : total - 2 * ALONG.margin + 140;
   return { orientation, width, height, stations, boxes, fibres };
 }

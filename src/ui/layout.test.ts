@@ -2,9 +2,35 @@ import { describe, expect, it } from 'vitest';
 import { catalog } from '../data/catalog';
 import { cassetteEnd, opticEnd, presets } from '../data/presets';
 import { evaluateLink, walkSteps, type EndConfig, type LinkConfig } from '../engine';
-import { layoutLink, type Orientation } from './layout';
+import { adapterKeys, layoutLink, type Orientation } from './layout';
+
+const methodAConfig = () => presets.find((p) => p.id === 'method-a')!.config;
 
 describe('layout', () => {
+  it('key notes: opposite keys for a key-up/key-down adapter, same keys for key-up/key-up', () => {
+    expect(adapterKeys('A', false)).toEqual({ module: 'up', cable: 'down' });
+    expect(adapterKeys('B', false)).toEqual({ module: 'up', cable: 'up' });
+    // Turning the cassette over turns its adapter over.
+    expect(adapterKeys('A', true)).toEqual({ module: 'down', cable: 'up' });
+    expect(adapterKeys('B', true)).toEqual({ module: 'down', cable: 'down' });
+  });
+
+  it('every cassette has a module outline that holds its rear adapter, apart from the cable', () => {
+    const g = layoutLink(methodAConfig(), evaluateLink(methodAConfig(), catalog), catalog, 'horizontal');
+    const trunk = g.boxes.find((b) => b.kind === 'trunk')!;
+    for (const side of ['left', 'right'] as const) {
+      const mod = g.boxes.find((b) => b.kind === 'cassette' && b.side === side)!;
+      const ad = g.boxes.find((b) => b.kind === 'adapter' && b.side === side)!;
+      expect(ad.x).toBeGreaterThan(mod.x);
+      expect(ad.x + ad.w).toBeLessThan(mod.x + mod.w);
+      expect(ad.h).toBeLessThan(mod.h);
+      expect(trunk.h).toBeLessThan(mod.h);
+      const gap = side === 'left' ? trunk.x - (mod.x + mod.w) : mod.x - (trunk.x + trunk.w);
+      expect(gap).toBeGreaterThan(0);
+      expect(ad.notes?.map((n) => n.text)).toEqual(['Module key up', 'Cable key down']);
+    }
+  });
+
   it('draws every fibre, including ones no light enters (Rx wired to Rx)', () => {
     const c: LinkConfig = {
       left: cassetteEnd('cas-a-12', 'lc-ab'),

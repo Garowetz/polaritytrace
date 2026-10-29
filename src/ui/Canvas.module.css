@@ -36,6 +36,8 @@
 
 .box_cassette > rect:first-child {
   fill: var(--surface-raised);
+  stroke: color-mix(in srgb, var(--text) 45%, transparent);
+  stroke-width: 1.4;
   filter: drop-shadow(0 6px 14px rgb(27 48 74 / 0.12));
 }
 
@@ -95,9 +97,21 @@
   fill: var(--text-muted);
 }
 
-.box_adapter .labelMain {
-  font-size: 10px;
-  fill: var(--text-muted);
+.box_adapter > rect:first-child {
+  stroke: color-mix(in srgb, var(--text) 30%, transparent);
+}
+
+/* Key notes under each rear adapter: module side and cable side. */
+.note path {
+  stroke: var(--text-muted);
+  stroke-width: 1.2;
+}
+
+.note text {
+  font-family: var(--font-title);
+  font-size: 11px;
+  font-weight: 700;
+  fill: var(--text);
 }
 
 /* Fibres */
@@ -124,12 +138,12 @@
   stroke-width: 3;
 }
 
-.unlit .core {
+.darkFibre .core {
   stroke: var(--text-muted);
   stroke-dasharray: 6 5;
 }
 
-.unlit .casing {
+.darkFibre .casing {
   stroke: color-mix(in srgb, var(--text-muted) 35%, transparent);
 }
 

@@ -22,7 +22,7 @@ What the site does today:
 - **The diagram:** every fibre is drawn in TIA colours. Hover or tap a fibre to highlight its path, and Play steps through the link with captions. The layout runs horizontally on desktop and vertically on phones. There is also a lab (dark) mode.
 - **Verdict panel:** the overall verdict, a channel-by-channel table, the issues found, and one-tap "Try this" fixes.
 - **Shareable links:** the URL always holds the current link. A preset is `?p=method-a`; anything else is `?a=<end A>&t=<cable>&b=<end B>`, e.g. `?a=cas-a-12~lc-ab&t=trunk-a-12~SMF~APC&b=cas-u1-12~lc-aa`. A bad or unknown link falls back to the default with a short note.
-- **Tests:** 183 engine, data and UI-logic tests, all passing.
+- **Tests:** 185 engine, data and UI-logic tests, all passing.
 
 ## Decisions made
 
@@ -47,7 +47,7 @@ What the site does today:
 
 ## Under discussion (owner feedback, 2026-10-28)
 
-- **Visuals:** a clear module outline around the rear MPO; the rear MPO and cable slightly narrower than the module; key-up/key-down labels moved to the bottom and split (one for the module adapter, one for the cable end); a small gap where cords and the cable meet a module; an 8-port module on a 12F MPO should show the unused positions.
+- **Visual update done (2026-10-28):** module outline holds its rear MPO; rear MPO and cable a little narrower than the module; key notes below each adapter ("Module key up" / "Cable key down", flipped when a cassette is mounted upside down); gaps where cords and the cable meet a module; card titles (End A / MPO cable / End B) are dark pill labels inside the cards. Unused MPO positions were already hollow dots.
 - **Fibres no light enters are now drawn** grey and dashed (e.g. Rx wired to Rx in Type A → Type A trunk → Universal). Blocked links with mismatched MPO sizes still draw nothing; the owner agrees that's right.
 - **Polarity Maps (plain-text part format):** draft spec in `docs/polarity-maps.md` ([Module], [Assembly], [Cord] blocks). Open: what key up / key down should mean in it. The owner finds key up/down confusing, so it needs a plain explanation first. The parser is not built yet.
 

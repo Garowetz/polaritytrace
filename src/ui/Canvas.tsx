@@ -64,7 +64,7 @@ export function Canvas({ geom, focus, onHover, onPin, stepHop, animate, onBox }:
           return (
             <g
               key={f.id}
-              className={`${styles.fibre} ${on ? styles.on : styles.off} ${f.direction === 'unlit' ? styles.unlit : ''}`}
+              className={`${styles.fibre} ${on ? styles.on : styles.off} ${f.direction === 'unlit' ? styles.darkFibre : ''}`}
               tabIndex={0}
               role="button"
               aria-label={`${f.colourName} fibre. ${f.label}`}
@@ -169,7 +169,15 @@ function BoxLabel({ box, vertical, onBox }: { box: BoxGeom; vertical: boolean; o
   const pillW = Math.max(box.label.length, (box.sub ?? '').length) * 6.4 + 18;
   return (
     <g className={`${styles.box} ${styles[`box_${box.kind}`]}`}>
-      {box.kind !== 'adapter' || !vertical ? (
+      {box.notes?.map((n) => (
+        <g key={n.text} className={styles.note}>
+          <path d={`M${n.tick[0].x} ${n.tick[0].y} L${n.tick[1].x} ${n.tick[1].y}`} />
+          <text x={n.x} y={n.y} textAnchor={n.anchor} dominantBaseline="central">
+            {n.text}
+          </text>
+        </g>
+      ))}
+      {box.kind !== 'adapter' ? (
         <g
           className={`${styles.boxLabel} ${onBox ? styles.pickable : ''}`}
           transform={`translate(${box.labelAt.x} ${box.labelAt.y})`}
