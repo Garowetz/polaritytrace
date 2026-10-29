@@ -1,5 +1,5 @@
 import { fibreColour } from '../data/colours';
-import { resolveLink, type Catalog, type ChannelOutcome, type Hop, type LinkConfig, type LinkResult, type Side } from '../engine';
+import { resolveLink, trace, type Catalog, type ChannelOutcome, type FibreTrace, type Hop, type LinkConfig, type LinkResult, type Side } from '../engine';
 import type { ResolvedEnd } from '../engine/resolve';
 
 // Pure geometry: turns engine output into points and paths. No React here, and
@@ -50,7 +50,8 @@ export interface BoxGeom {
 export interface FibreGeom {
   id: string;
   channelId: string;
-  direction: 'forward' | 'back';
+  /** 'unlit': a fibre no transmitter feeds (e.g. Rx wired to Rx), drawn grey. */
+  direction: 'forward' | 'back' | 'unlit';
   colour: string;
   colourName: string;
   /** Full path in light direction. */
@@ -247,32 +248,56 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
 
   // 3. Fibres: one per traced direction of every channel.
   const fibres: FibreGeom[] = [];
+  const addFibre = (t: FibreTrace, id: string, channelId: string, direction: FibreGeom['direction'], outcome: ChannelOutcome, label: string) => {
+    const ids = t.hops.map(slotId);
+    const points = ids.map((id) => slotById.get(id)).filter((p): p is SlotGeom => Boolean(p));
+    const trunkHops = t.hops.filter((h): h is Extract<Hop, { at: 'trunk' }> => h.at === 'trunk');
+    const trunkHop = trunkHops.find((h) => h.side === 'left') ?? trunkHops[0];
+    const colour = trunkHop ? fibreColour(trunkHop.pos, trunk.positions) : { name: 'Unknown', hex: '#80a5d9' };
+    const prefixes = points.map((_, i) => pathThrough(points.slice(0, i + 1), orientation));
+    const arr = t.arrival;
+    const end: FibreGeom['end'] =
+      (arr.kind === 'equipment' || arr.kind === 'optic') && arr.role !== 'unused' ? arr.role : 'dark';
+    fibres.push({
+      id,
+      channelId,
+      direction,
+      colour: colour.hex,
+      colourName: colour.tracer ? `${colour.name} with ${colour.tracer.name}` : colour.name,
+      d: prefixes[prefixes.length - 1] ?? '',
+      prefixes,
+      points,
+      slotIds: ids,
+      outcome,
+      end,
+      label,
+    });
+  };
   for (const ch of result.channels) {
     for (const direction of ['forward', 'back'] as const) {
-      const t = ch[direction];
-      const ids = t.hops.map(slotId);
-      const points = ids.map((id) => slotById.get(id)).filter((p): p is SlotGeom => Boolean(p));
-      const trunkHops = t.hops.filter((h): h is Extract<Hop, { at: 'trunk' }> => h.at === 'trunk');
-      const trunkHop = trunkHops.find((h) => h.side === 'left') ?? trunkHops[0];
-      const colour = trunkHop ? fibreColour(trunkHop.pos, trunk.positions) : { name: 'Unknown', hex: '#80a5d9' };
-      const prefixes = points.map((_, i) => pathThrough(points.slice(0, i + 1), orientation));
-      const arr = t.arrival;
-      const end: FibreGeom['end'] =
-        (arr.kind === 'equipment' || arr.kind === 'optic') && arr.role !== 'unused' ? arr.role : 'dark';
-      fibres.push({
-        id: `${ch.id}:${direction}`,
-        channelId: ch.id,
-        direction,
-        colour: colour.hex,
-        colourName: colour.tracer ? `${colour.name} with ${colour.tracer.name}` : colour.name,
-        d: prefixes[prefixes.length - 1] ?? '',
-        prefixes,
-        points,
-        slotIds: ids,
-        outcome: ch.outcome,
-        end,
-        label: `${ch.label}${direction === 'back' ? ' return' : ''}: ${ch.message}`,
-      });
+      addFibre(ch[direction], `${ch.id}:${direction}`, ch.id, direction, ch.outcome, `${ch.label}${direction === 'back' ? ' return' : ''}: ${ch.message}`);
+    }
+  }
+
+  // Fibres no light enters are still real glass: trace them from each
+  // receiver that nothing reached, so every fibre is drawn.
+  const reached = new Set(fibres.flatMap((f) => [f.slotIds[0], f.slotIds[f.slotIds.length - 1]]));
+  if (result.channels.length) {
+    for (const st of stations) {
+      if (st.kind !== 'equipment' && st.kind !== 'optic') continue;
+      const side = st.key.startsWith('left') ? 'left' : 'right';
+      for (const slot of st.slots) {
+        if (slot.role !== 'rx' || reached.has(slot.id)) continue;
+        const key = slot.id.split('|')[1];
+        const t =
+          st.kind === 'equipment'
+            ? trace(link, { side, at: 'equipment', port: Number(key.slice(0, -1)), pos: key.slice(-1) as 'A' | 'B' })
+            : trace(link, { side, at: 'optic', pos: Number(key) });
+        const id = `unlit:${slot.id}`;
+        addFibre(t, id, id, 'unlit', 'dark', `${side === 'left' ? 'End A' : 'End B'} ${slot.port ? `port ${slot.port} ` : `position ${key} `}Rx: no transmitter feeds this fibre, so no light reaches it.`);
+        const f = fibres[fibres.length - 1];
+        reached.add(f.slotIds[0]).add(f.slotIds[f.slotIds.length - 1]);
+      }
     }
   }
 

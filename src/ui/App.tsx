@@ -128,7 +128,9 @@ export function App() {
           <p className={styles.focusLine} aria-live="polite">
             {focusedChannel
               ? `${focusedChannel.label}: ${focusedChannel.message}`
-              : 'Hover or tap a fibre or connector position to follow its path.'}
+              : focus?.kind === 'channel' && focus.id.startsWith('unlit:')
+                ? geom.fibres.find((f) => f.id === focus.id)?.label
+                : 'Hover or tap a fibre or connector position to follow its path.'}
           </p>
           <ul className={styles.legend} aria-label="Legend">
             <li><span className={`${styles.key} ${styles.keyOk}`} aria-hidden="true" /> Light lands on a receiver</li>

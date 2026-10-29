@@ -124,6 +124,15 @@
   stroke-width: 3;
 }
 
+.unlit .core {
+  stroke: var(--text-muted);
+  stroke-dasharray: 6 5;
+}
+
+.unlit .casing {
+  stroke: color-mix(in srgb, var(--text-muted) 35%, transparent);
+}
+
 .hit {
   stroke: transparent;
   stroke-width: 14;

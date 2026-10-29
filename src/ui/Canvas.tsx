@@ -64,7 +64,7 @@ export function Canvas({ geom, focus, onHover, onPin, stepHop, animate, onBox }:
           return (
             <g
               key={f.id}
-              className={`${styles.fibre} ${on ? styles.on : styles.off}`}
+              className={`${styles.fibre} ${on ? styles.on : styles.off} ${f.direction === 'unlit' ? styles.unlit : ''}`}
               tabIndex={0}
               role="button"
               aria-label={`${f.colourName} fibre. ${f.label}`}
@@ -84,7 +84,7 @@ export function Canvas({ geom, focus, onHover, onPin, stepHop, animate, onBox }:
               }}
             >
               <path d={pathOf(f)} className={styles.casing} />
-              <path d={pathOf(f)} className={styles.core} style={{ stroke: f.colour }} />
+              <path d={pathOf(f)} className={styles.core} style={f.direction === 'unlit' ? undefined : { stroke: f.colour }} />
               <path d={pathOf(f)} className={styles.hit} />
             </g>
           );
@@ -94,7 +94,7 @@ export function Canvas({ geom, focus, onHover, onPin, stepHop, animate, onBox }:
       {animate && (
         <g className={styles.pulses} aria-hidden="true">
           {visible.map((f, i) =>
-            !lit || lit.has(f.channelId) ? (
+            f.direction !== 'unlit' && (!lit || lit.has(f.channelId)) ? (
               <circle key={`${f.id}:${stepHop ?? 'all'}`} r={4.5} className={styles.pulse} style={{ fill: f.colour }}>
                 <animateMotion
                   dur={`${stepping ? 1.4 : PULSE_SECONDS}s`}
@@ -119,7 +119,7 @@ export function Canvas({ geom, focus, onHover, onPin, stepHop, animate, onBox }:
 
       <g aria-hidden="true">
         {visible.map((f) => {
-          if (!done(f) || (lit && !lit.has(f.channelId))) return null;
+          if (f.direction === 'unlit' || !done(f) || (lit && !lit.has(f.channelId))) return null;
           const p = f.points[f.points.length - 1];
           if (!p) return null;
           return <Arrival key={f.id} x={p.x} y={p.y} end={f.end} />;
