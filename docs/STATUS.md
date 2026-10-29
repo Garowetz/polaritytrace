@@ -49,7 +49,7 @@ What the site does today:
 
 - **Visuals:** a clear module outline around the rear MPO; the rear MPO and cable slightly narrower than the module; key-up/key-down labels moved to the bottom and split (one for the module adapter, one for the cable end); a small gap where cords and the cable meet a module; an 8-port module on a 12F MPO should show the unused positions.
 - **Fibres no light enters are now drawn** grey and dashed (e.g. Rx wired to Rx in Type A → Type A trunk → Universal). Blocked links with mismatched MPO sizes still draw nothing; the owner agrees that's right.
-- **Plain-text module format** the owner can write down: one header per line, condensed (e.g. `MPO/APC-12F-Down`), connector type stated (LC, SC, CS, SN …), rows `port-MPO` numbered by port, size from the row count.
+- **Polarity Maps (plain-text part format):** draft spec in `docs/polarity-maps.md` ([Module], [Assembly], [Cord] blocks). Open: what key up / key down should mean in it. The owner finds key up/down confusing, so it needs a plain explanation first. The parser is not built yet.
 
 ## Next: Step 5 (rest)
 
