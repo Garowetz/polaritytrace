@@ -12,7 +12,7 @@ Live site: https://garowetz.github.io/polaritytrace/ (branch `main`). Work happe
 | 2 | Polarity engine, component data, tests | Done |
 | 3 | Link canvas with light animation | Done |
 | 4 | Pickers, verdict panel with fixes | Done (live) |
-| 5 | Link saved in the URL, PDF export | **Next** |
+| 5 | Link saved in the URL (done), PDF export (next) | **In progress** |
 | 6 | Polish: animation, mobile, accessibility | Later |
 
 What the site does today:
@@ -21,7 +21,8 @@ What the site does today:
 - **Examples menu:** holds the presets, including the "common mistake" ones.
 - **The diagram:** every fibre is drawn in TIA colours. Hover or tap a fibre to highlight its path, and Play steps through the link with captions. The layout runs horizontally on desktop and vertically on phones. There is also a lab (dark) mode.
 - **Verdict panel:** the overall verdict, a channel-by-channel table, the issues found, and one-tap "Try this" fixes.
-- **Tests:** 176 engine, data and UI-logic tests, all passing.
+- **Shareable links:** the URL always holds the current link. A preset is `?p=method-a`; anything else is `?a=<end A>&t=<cable>&b=<end B>`, e.g. `?a=cas-a-12~lc-ab&t=trunk-a-12~SMF~APC&b=cas-u1-12~lc-aa`. A bad or unknown link falls back to the default with a short note.
+- **Tests:** 181 engine, data and UI-logic tests, all passing.
 
 ## Decisions made
 
@@ -44,8 +45,13 @@ What the site does today:
    - MPO-24 adapter row swap
    - confirming F-U1-24-A
 
-## Next: Step 5
+## Under discussion (owner feedback, 2026-10-28)
 
-- **Shareable links:** encode the whole link (`LinkConfig`) in the URL. Opening a shared link restores the exact view. Links with bad or unknown parts fall back to the default.
+- **Visuals:** a clear module outline around the rear MPO; the rear MPO and cable slightly narrower than the module; key-up/key-down labels moved to the bottom and split (one for the module adapter, one for the cable end); a small gap where cords and the cable meet a module; an 8-port module on a 12F MPO should show the unused positions.
+- **Blocked links draw no paths:** e.g. a 12F trunk into a 16F module. The owner wants the paths drawn greyed out for troubleshooting.
+- **Plain-text module format** the owner can write down: one header per line, condensed (e.g. `MPO/APC-12F-Down`), connector type stated (LC, SC, CS, SN …), rows `port-MPO` numbered by port, size from the row count.
+
+## Next: Step 5 (rest)
+
 - **PDF export:** a one-page PDF with the diagram as vector graphics, the component list, the verdict table and the share link.
 - **Custom domain:** get ready for one later (polaritytrace.com).

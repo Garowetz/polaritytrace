@@ -8,6 +8,7 @@ import { Builder, pickerForBox, presetFor } from './Builder';
 import type { PickerTarget } from './choices';
 import { StepControls, VerdictStrip } from './Controls';
 import { layoutLink } from './layout';
+import { asksForLink, decodeLink, encodeLink } from './urlState';
 import { useMediaQuery } from './useMediaQuery';
 
 type Theme = 'light' | 'dark';
@@ -18,10 +19,16 @@ function systemTheme(): Theme {
 
 const STEP_MS = 2200;
 
+const defaultConfig = () => (presets.find((p) => p.id === DEFAULT_PRESET) ?? presets[0]).config;
+
 export function App() {
   // Theme is per-session only: nothing is stored.
   const [theme, setTheme] = useState<Theme>(systemTheme);
-  const [config, setConfig] = useState<LinkConfig>(() => (presets.find((p) => p.id === DEFAULT_PRESET) ?? presets[0]).config);
+  // The link comes from the URL when there is a usable one.
+  const [config, setConfig] = useState<LinkConfig>(() => decodeLink(window.location.search, catalog, presets) ?? defaultConfig());
+  const [badLink, setBadLink] = useState(
+    () => asksForLink(window.location.search) && !decodeLink(window.location.search, catalog, presets),
+  );
   const [hover, setHover] = useState<Focus | null>(null);
   const [pinned, setPinned] = useState<Focus | null>(null);
   const [step, setStep] = useState<number | null>(null);
@@ -34,6 +41,12 @@ export function App() {
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
+
+  // Keep the URL in step with the link, without adding browser history.
+  useEffect(() => {
+    const url = window.location.pathname + encodeLink(config, presets) + window.location.hash;
+    window.history.replaceState(null, '', url);
+  }, [config]);
 
   const preset = presetFor(presets, config);
   const configKey = JSON.stringify(config);
@@ -66,6 +79,7 @@ export function App() {
       throw e;
     }
     setConfig(c);
+    setBadLink(false);
     setStep(null);
     setPlaying(false);
     setPinned(null);
@@ -91,6 +105,11 @@ export function App() {
 
       <main className={styles.main}>
         <Builder catalog={catalog} config={config} onChange={change} presets={presets} activePreset={preset?.id ?? null} picker={picker} onPicker={setPicker} />
+        {badLink && (
+          <p className={styles.blurb} role="status">
+            That shared link uses a part this site does not know, so the default link is shown.
+          </p>
+        )}
         {preset && <p className={styles.blurb}>{preset.blurb}</p>}
 
         <section className={styles.stage} aria-label="Link diagram">
