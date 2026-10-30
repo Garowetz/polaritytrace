@@ -12,6 +12,18 @@
   flex-wrap: wrap;
 }
 
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.logo {
+  flex: none;
+  width: clamp(3rem, 8vw, 4.25rem);
+  height: auto;
+}
+
 .title {
   font-size: clamp(1.6rem, 4vw, 2.4rem);
   letter-spacing: 0.08em;

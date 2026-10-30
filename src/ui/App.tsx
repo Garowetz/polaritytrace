@@ -8,6 +8,7 @@ import { Builder, pickerForBox, presetFor } from './Builder';
 import type { PickerTarget } from './choices';
 import { StepControls, VerdictStrip } from './Controls';
 import { layoutLink } from './layout';
+import { Logo } from './Logo';
 import { asksForLink, decodeLink, encodeLink } from './urlState';
 import { useMediaQuery } from './useMediaQuery';
 
@@ -94,9 +95,12 @@ export function App() {
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <div>
-          <h1 className={styles.title}>Polarity Trace</h1>
-          <p className={styles.subtitle}>Follow the light from Tx to Rx</p>
+        <div className={styles.brand}>
+          <Logo className={styles.logo} />
+          <div>
+            <h1 className={styles.title}>Polarity Trace</h1>
+            <p className={styles.subtitle}>Follow the light from Tx to Rx</p>
+          </div>
         </div>
         <button type="button" className={styles.themeToggle} onClick={() => setTheme(next)} aria-label={`Switch to ${next} mode`}>
           {theme === 'dark' ? 'Light mode' : 'Lab mode'}
