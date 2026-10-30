@@ -22,7 +22,7 @@ What the site does today:
 - **The diagram:** every fibre is drawn in TIA colours. Hover or tap a fibre to highlight its path, and Play steps through the link with captions. The layout runs horizontally on desktop and vertically on phones. There is also a lab (dark) mode.
 - **Verdict panel:** the overall verdict, a channel-by-channel table, the issues found, and one-tap "Try this" fixes.
 - **Shareable links:** the URL always holds the current link. A preset is `?p=method-a`; anything else is `?a=<end A>&t=<cable>&b=<end B>`, e.g. `?a=cas-a-12~lc-ab&t=trunk-a-12~SMF~APC&b=cas-u1-12~lc-aa`. A bad or unknown link falls back to the default with a short note.
-- **Logo:** the Polarity Trace mark (blue strands crossing, orange chevrons, aqua light dot) sits in the header and is the browser-tab icon.
+- **Logo:** the Polarity Trace mark (blue strands crossing, orange chevrons) sits in the header and is the browser-tab icon.
 - **Tests:** 185 engine, data and UI-logic tests, all passing.
 
 ## Decisions made

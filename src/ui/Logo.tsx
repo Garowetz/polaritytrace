@@ -1,7 +1,7 @@
 import { useId } from 'react';
 
 // The Polarity Trace mark: two blue strands cross from Tx to Rx (the polarity
-// flip), orange strands sit in the sides, and an aqua dot is the light.
+// flip) and orange strands sit in the sides.
 // public/favicon.svg is the same drawing; keep the two in step.
 
 const OVER = 'M4 52 H16 L48 12 H60';
@@ -20,8 +20,6 @@ export function Logo({ className }: { className?: string }) {
         <path d={UNDER} stroke="#80A5D9" mask={`url(#${cut})`} />
         <path d={OVER} stroke="#80A5D9" />
       </g>
-      <circle cx="40" cy="22" r="7.5" fill="#3CC6C9" opacity="0.3" />
-      <circle cx="40" cy="22" r="4" fill="#3CC6C9" />
     </svg>
   );
 }
