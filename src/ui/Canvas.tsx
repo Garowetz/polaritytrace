@@ -58,6 +58,7 @@ export function Canvas({ geom, focus, onHover, onPin, stepHop, animate, onBox }:
         <BoxShape key={b.id} box={b} onBox={onBox} />
       ))}
 
+
       <g className={lit ? styles.focusing : undefined}>
         {visible.map((f) => {
           const on = !lit || lit.has(f.channelId);
@@ -89,6 +90,13 @@ export function Canvas({ geom, focus, onHover, onPin, stepHop, animate, onBox }:
             </g>
           );
         })}
+      </g>
+
+      {/* Connector bodies sit over their fibres, as on a real cord. */}
+      <g className={styles.connectors} aria-hidden="true">
+        {geom.connectors.map((c, i) => (
+          <rect key={i} x={c.x} y={c.y} width={c.w} height={c.h} rx={2.5} />
+        ))}
       </g>
 
       {animate && (
@@ -136,6 +144,7 @@ const NAMES: Record<BoxGeom['kind'], string> = {
   cassette: 'cassette',
   adapter: 'cassette',
   trunk: 'MPO cable',
+  plug: 'MPO cable',
 };
 
 function boxHandlers(box: BoxGeom, onBox?: (b: BoxGeom) => void) {
@@ -160,7 +169,7 @@ function boxHandlers(box: BoxGeom, onBox?: (b: BoxGeom) => void) {
 function BoxShape({ box, onBox }: { box: BoxGeom; onBox?: (b: BoxGeom) => void }) {
   return (
     <g className={`${styles.box} ${styles[`box_${box.kind}`]} ${box.underReview ? styles.review : ''} ${onBox ? styles.pickable : ''}`} {...boxHandlers(box, onBox)}>
-      <rect x={box.x} y={box.y} width={box.w} height={box.h} rx={box.kind === 'trunk' ? 16 : 12} />
+      <rect x={box.x} y={box.y} width={box.w} height={box.h} rx={box.kind === 'trunk' ? 14 : box.kind === 'plug' ? 6 : 12} />
     </g>
   );
 }
@@ -177,7 +186,7 @@ function BoxLabel({ box, vertical, onBox }: { box: BoxGeom; vertical: boolean; o
           </text>
         </g>
       ))}
-      {box.kind !== 'adapter' ? (
+      {box.kind !== 'adapter' && box.kind !== 'plug' ? (
         <g
           className={`${styles.boxLabel} ${onBox ? styles.pickable : ''}`}
           transform={`translate(${box.labelAt.x} ${box.labelAt.y})`}

@@ -30,8 +30,16 @@
 }
 
 .box_cord > rect:first-child {
-  fill: color-mix(in srgb, var(--accent) 8%, transparent);
-  stroke-dasharray: 2 5;
+  /* The cords themselves are drawn; the box only holds the label and the tap target. */
+  fill: transparent;
+  stroke: none;
+}
+
+.connectors rect {
+  pointer-events: none;
+  fill: var(--surface-raised);
+  stroke: color-mix(in srgb, var(--text) 55%, transparent);
+  stroke-width: 1.2;
 }
 
 .box_cassette > rect:first-child {
@@ -48,6 +56,13 @@
 .box_trunk > rect:first-child {
   fill: color-mix(in srgb, var(--accent) 14%, transparent);
   stroke: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+/* The MPO plug at each end of the cable. */
+.box_plug > rect:first-child {
+  fill: color-mix(in srgb, var(--accent) 26%, var(--surface-raised));
+  stroke: color-mix(in srgb, var(--accent) 75%, var(--text));
+  stroke-width: 1.4;
 }
 
 .review > rect:first-child {

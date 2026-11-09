@@ -31,7 +31,7 @@ export interface StationGeom {
   kind: Hop['at'];
 }
 
-export type BoxKind = 'equipment' | 'optic' | 'cord' | 'cassette' | 'adapter' | 'trunk';
+export type BoxKind = 'equipment' | 'optic' | 'cord' | 'cassette' | 'adapter' | 'trunk' | 'plug';
 
 export interface BoxGeom {
   id: string;
@@ -68,22 +68,44 @@ export interface FibreGeom {
   label: string;
 }
 
+/** A patch-cord connector body (LC, SC …) around one fibre. */
+export interface ConnectorGeom {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
 export interface LinkGeom {
   orientation: Orientation;
   width: number;
   height: number;
   stations: StationGeom[];
   boxes: BoxGeom[];
+  connectors: ConnectorGeom[];
   fibres: FibreGeom[];
 }
 
 const PITCH = 22;
-const ALONG = { margin: 120, cord: 190, cassette: 180, adapter: 100, trunk: 320 };
+// Fibres pack closer at the module's rear MPO and through the cable, so they
+// read as one MPO, but not so close that the moving light dots touch.
+const TIGHT = 0.62;
+const ALONG = { margin: 120, cord: 230, cassette: 180, adapter: 100, trunk: 320 };
 const TOP = 104; // room for component labels above (horizontal)
 const GUTTER = 24;
 // How far each kind of box reaches past the outer fibres. The rear MPO and the
 // cable are a little narrower than the module, so they read as smaller parts.
-const PAD: Record<BoxKind, number> = { equipment: 18, optic: 18, cord: 18, cassette: 24, adapter: 11, trunk: 12 };
+const PAD: Record<BoxKind, number> = { equipment: 18, optic: 18, cord: 18, cassette: 24, adapter: 10, trunk: 7, plug: 12 };
+// The MPO plug at each end of the cable, and the jacket between them.
+const PLUG = 40;
+// Patch cords: each connector body, and how close the two fibres of a duplex
+// cord run in the zip cord between them.
+const CONN = 24;
+const CONN_ACROSS = 11;
+// The module-side connectors stand off the module so its port numbers show in the gap.
+const FRONT_ROOM = 34;
+const ZIP = 3;
+const FAN = 24;
 // Gap where a cord or the cable meets a module, so each part reads on its own.
 const GAP = 8;
 // How far the cable box runs past its end positions.
@@ -245,39 +267,57 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
   const trunkSlots = () => positionSlots(trunk.positions, trunk.litPositions);
   raw.push({ key: 'left:trunk', along: trunkL, slots: trunkSlots(), labelDir: 1, kind: 'trunk' });
   raw.push({ key: 'right:trunk', along: trunkR, slots: trunkSlots(), labelDir: -1, kind: 'trunk' });
-  boxSpecs.push({ kind: 'trunk', a0: trunkL - TRUNK_OVERHANG, a1: trunkR + TRUNK_OVERHANG, label: trunk.label, sub: footprintLabel(trunk.positions, trunk.litPositions.length), underReview: !trunk.verified });
+  // The cable: an MPO plug at each end and the jacket between them.
+  boxSpecs.push(
+    { kind: 'trunk', a0: trunkL + PLUG, a1: trunkR - PLUG, label: trunk.label, sub: footprintLabel(trunk.positions, trunk.litPositions.length), underReview: !trunk.verified },
+    { kind: 'plug', a0: trunkL - TRUNK_OVERHANG, a1: trunkL + PLUG, label: trunk.label, underReview: !trunk.verified },
+    { kind: 'plug', a0: trunkR + TRUNK_OVERHANG, a1: trunkR - PLUG, label: trunk.label, underReview: !trunk.verified },
+  );
   place('right', R, trunkR, 1);
   raw.sort((x, y) => x.along - y.along);
 
-  // 2. Across positions: centre every station on the widest one.
-  const maxU = Math.max(...raw.map((s) => Math.max(...s.slots.map((x) => x.u))));
-  const extent = maxU * PITCH;
+  // 2. Across positions: centre every station on the widest one. The rear
+  //    MPO and the cable use the tighter pitch.
+  const pitchOf = (s: Raw) => (s.kind === 'internal' || s.kind === 'trunk' ? PITCH * TIGHT : PITCH);
+  const span = (s: Raw) => Math.max(...s.slots.map((x) => x.u)) * pitchOf(s);
+  const extent = Math.max(...raw.map(span));
+  const tightHalf = Math.max(...raw.filter((s) => pitchOf(s) < PITCH).map(span)) / 2;
   const map = (along: number, across: number): Point =>
     orientation === 'horizontal' ? { x: along, y: TOP + across } : { x: GUTTER + across, y: along - ALONG.margin + 70 };
 
+  // Where each slot sits as (along, across), for the cord drawing.
+  const at = new Map<string, { along: number; across: number }>();
   const stations: StationGeom[] = raw.map((s) => {
-    const sMax = Math.max(...s.slots.map((x) => x.u));
-    const off = (extent - sMax * PITCH) / 2;
+    const off = (extent - span(s)) / 2;
     return {
       key: s.key,
       labelDir: s.labelDir,
       kind: s.kind,
-      slots: s.slots.map((x) => ({ ...map(s.along, off + x.u * PITCH), id: `${s.key}|${x.key}`, label: x.label, port: x.port, role: x.role, lit: x.lit })),
+      slots: s.slots.map((x) => {
+        const id = `${s.key}|${x.key}`;
+        const across = off + x.u * pitchOf(s);
+        at.set(id, { along: s.along, across });
+        return { ...map(s.along, across), id, label: x.label, port: x.port, role: x.role, lit: x.lit };
+      }),
     };
   });
   const slotById = new Map(stations.flatMap((s) => s.slots.map((x) => [x.id, x] as const)));
 
   // Labels above the drawing alternate height so neighbours never collide.
   // Adapters carry their key notes below instead.
-  const labelled = boxSpecs.filter((b) => b.kind !== 'adapter').sort((x, y) => Math.min(x.a0, x.a1) - Math.min(y.a0, y.a1));
-  // Adapters draw after (on top of) the module outline that holds them.
-  boxSpecs.sort((x, y) => Number(x.kind === 'adapter') - Number(y.kind === 'adapter'));
+  const labelled = boxSpecs.filter((b) => b.kind !== 'adapter' && b.kind !== 'plug').sort((x, y) => Math.min(x.a0, x.a1) - Math.min(y.a0, y.a1));
+  // Adapters draw after (on top of) the module outline that holds them, and
+  // the plugs on top of the cable jacket.
+  const onTop = (b: BoxSpec) => Number(b.kind === 'adapter' || b.kind === 'plug');
+  boxSpecs.sort((x, y) => onTop(x) - onTop(y));
   const boxes: BoxGeom[] = boxSpecs.map((b, i) => {
     const pad = PAD[b.kind];
     const lo = Math.min(b.a0, b.a1);
     const hi = Math.max(b.a0, b.a1);
-    const p0 = map(lo, -pad);
-    const p1 = map(hi, extent + pad);
+    // The rear MPO and the cable are only as wide as their tighter fibres.
+    const half = b.kind === 'adapter' || b.kind === 'trunk' || b.kind === 'plug' ? tightHalf : extent / 2;
+    const p0 = map(lo, extent / 2 - half - pad);
+    const p1 = map(hi, extent / 2 + half + pad);
     const mid = (lo + hi) / 2;
     const order = Math.max(0, labelled.indexOf(b));
     // Vertical: end boxes carry their label at the outer edge, clear of the
@@ -322,16 +362,71 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
     ];
   }
 
-  // 3. Fibres: one per traced direction of every channel.
+  // 3. Patch cords. Each fibre leaves the module through its own connector,
+  //    the pair runs close together as a zip cord, then splits again into the
+  //    connectors at the equipment. An A-to-A cord crosses at that split.
+  const rect = (a0: number, a1: number, across: number, h: number): ConnectorGeom => {
+    const p = map(Math.min(a0, a1), across - h / 2);
+    const q = map(Math.max(a0, a1), across + h / 2);
+    return { x: Math.min(p.x, q.x), y: Math.min(p.y, q.y), w: Math.abs(q.x - p.x), h: Math.abs(q.y - p.y) };
+  };
+  const cordWay = (h: Extract<Hop, { at: 'front' }>, e: Extract<Hop, { at: 'equipment' }>) => {
+    const f = at.get(slotId(h));
+    const q = at.get(slotId(e));
+    const a = at.get(`${h.side}:front|${h.port}A`);
+    const b = at.get(`${h.side}:front|${h.port}B`);
+    if (!f || !q || !a || !b) return [];
+    const sgn = Math.sign(q.along - f.along);
+    const zip = (a.across + b.across) / 2 + (h.pos === 'A' ? -ZIP : ZIP);
+    const out = f.along + sgn * (FRONT_ROOM + CONN);
+    const inn = q.along - sgn * (10 + GAP + CONN);
+    return [
+      map(out, f.across),
+      map(out + sgn * FAN, zip),
+      map(inn - sgn * FAN, zip),
+      map(inn, q.across),
+    ];
+  };
+  const connectors: ConnectorGeom[] = [];
+  for (const side of ['left', 'right'] as const) {
+    const end = link[side];
+    if (end.kind !== 'cassette' || end.bare) continue;
+    for (const port of end.patched) {
+      for (const pos of ['A', 'B'] as const) {
+        const f = at.get(`${side}:front|${port}${pos}`);
+        const q = at.get(`${side}:equipment|${port}${pos}`);
+        if (!f || !q) continue;
+        const sgn = Math.sign(q.along - f.along);
+        connectors.push(rect(f.along + sgn * FRONT_ROOM, f.along + sgn * (FRONT_ROOM + CONN), f.across, CONN_ACROSS));
+        connectors.push(rect(q.along - sgn * (10 + GAP), q.along - sgn * (10 + GAP + CONN), q.across, CONN_ACROSS));
+      }
+    }
+  }
+
+  // 4. Fibres: one per traced direction of every channel.
   const fibres: FibreGeom[] = [];
   const addFibre = (t: FibreTrace, id: string, channelId: string, direction: FibreGeom['direction'], outcome: ChannelOutcome, label: string) => {
     if (t.hops.length < 2) return;
     const ids = t.hops.map(slotId);
     const points = ids.map((id) => slotById.get(id)).filter((p): p is SlotGeom => Boolean(p));
+    // The drawn path also passes through the cord shape. route[k] holds the
+    // path up to hop k, so the step control still moves hop by hop.
+    const route: Point[] = [];
+    const upTo: number[] = [];
+    t.hops.forEach((h, k) => {
+      const prev = t.hops[k - 1];
+      if (prev && prev.side === h.side) {
+        if (prev.at === 'front' && h.at === 'equipment') route.push(...cordWay(prev, h));
+        if (prev.at === 'equipment' && h.at === 'front') route.push(...cordWay(h, prev).reverse());
+      }
+      const p = slotById.get(ids[k]);
+      if (p) route.push(p);
+      upTo.push(route.length);
+    });
     const trunkHops = t.hops.filter((h): h is Extract<Hop, { at: 'trunk' }> => h.at === 'trunk');
     const trunkHop = trunkHops.find((h) => h.side === 'left') ?? trunkHops[0];
     const colour = trunkHop ? fibreColour(trunkHop.pos, trunk.positions) : { name: 'Unknown', hex: '#80a5d9' };
-    const prefixes = points.map((_, i) => pathThrough(points.slice(0, i + 1), orientation));
+    const prefixes = upTo.filter((n) => n > 0).map((n) => pathThrough(route.slice(0, n), orientation));
     const arr = t.arrival;
     const end: FibreGeom['end'] =
       (arr.kind === 'equipment' || arr.kind === 'optic') && arr.role !== 'unused' ? arr.role : arr.kind === 'unpatched' && outcome === 'mapped' ? 'land' : 'dark';
@@ -380,7 +475,7 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
 
   const width = orientation === 'horizontal' ? total : GUTTER * 2 + extent + NOTE_ROOM;
   const height = orientation === 'horizontal' ? TOP + extent + 56 : total - 2 * ALONG.margin + 140;
-  return { orientation, width, height, stations, boxes, fibres };
+  return { orientation, width, height, stations, boxes, connectors, fibres };
 }
 
 /** Smooth path through points: each hop is an S-curve along the link. */

@@ -345,7 +345,7 @@ function CableCard({
 
 /** Which picker a component drawn on the canvas opens. */
 export function pickerForBox(kind: string, side: Side | undefined): PickerTarget | null {
-  if (kind === 'trunk') return { what: 'trunk' };
+  if (kind === 'trunk' || kind === 'plug') return { what: 'trunk' };
   if (!side) return null;
   if (kind === 'cord') return { what: 'cord', side };
   if (kind === 'equipment') return { what: 'equipment', side };

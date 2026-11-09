@@ -123,9 +123,22 @@ describe('layout', () => {
     expect(kinds('right')).not.toContain('equipment');
     expect(kinds('left')).toContain('equipment');
     expect(geom.stations.some((s) => s.key === 'right:equipment')).toBe(false);
+    // Connectors only at End A: 6 ports × 2 fibres × 2 ends of the cord.
+    expect(geom.connectors).toHaveLength(24);
     const tx = geom.fibres.filter((f) => f.direction === 'forward');
     expect(tx).toHaveLength(6);
     expect(tx.every((f) => f.end === 'land')).toBe(true);
     expect(walkSteps(config, catalog, evaluateLink(config, catalog)).at(-1)?.title).toBe('Port map');
+  });
+
+  it('patch cords get a connector at each end of every fibre, and the cable gets two plugs', () => {
+    const config = methodAConfig();
+    const geom = layoutLink(config, evaluateLink(config, catalog), catalog, 'horizontal');
+    expect(geom.connectors).toHaveLength(48);
+    expect(geom.boxes.filter((b) => b.kind === 'plug')).toHaveLength(2);
+    // The cable and its plugs are narrower than the modules.
+    const cassette = geom.boxes.find((b) => b.kind === 'cassette')!;
+    const cable = geom.boxes.find((b) => b.kind === 'trunk')!;
+    expect(cable.h).toBeLessThan(cassette.h);
   });
 });
