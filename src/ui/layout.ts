@@ -58,14 +58,10 @@ export interface FibreGeom {
   direction: 'forward' | 'back' | 'unlit';
   colour: string;
   colourName: string;
-  /** Full path in light direction, as drawn: the glass stops at the module
-   *  front and starts again past the patch-cord connector. */
+  /** Full path in light direction. */
   d: string;
-  /** prefixes[i] = drawn path through hops 0..i, for the step control. */
+  /** prefixes[i] = path through hops 0..i, for the step control. */
   prefixes: string[];
-  /** The same paths without the breaks, for the moving light. */
-  motion: string;
-  motionPrefixes: string[];
   points: Point[];
   slotIds: string[];
   outcome: ChannelOutcome;
@@ -91,7 +87,7 @@ export interface LinkGeom {
   connectors: ConnectorGeom[];
   fibres: FibreGeom[];
   /** Parts list and result under the drawing, one entry per line. */
-  summary: { x: number; y: number; text: string; strong: boolean }[];
+  summary: { x: number; y: number; text: string; anchor: 'start' | 'middle' | 'end'; strong: boolean }[];
 }
 
 const PITCH = 22;
@@ -99,9 +95,9 @@ const PITCH = 22;
 // read as one MPO, but not so close that the moving light dots touch.
 const TIGHT = 0.62;
 const ALONG = { margin: 120, cord: 230, cassette: 180, adapter: 100, trunk: 320 };
-const TOP = 130; // room for component labels above (horizontal)
+const TOP = 146; // room for component labels above (horizontal)
 const GUTTER = 24;
-const SUB_LINE = 14;
+const SUB_LINE = 16;
 const subLines = (sub?: string) => (sub ? sub.split('\n').length : 0);
 // How far each kind of box reaches past the outer fibres. The rear MPO and the
 // cable are a little narrower than the module, so they read as smaller parts.
@@ -112,8 +108,6 @@ const PLUG = 40;
 // cord run in the zip cord between them.
 const CONN = 24;
 const CONN_ACROSS = 11;
-// The module-side connectors stand off the module so its port numbers show in the gap.
-const FRONT_ROOM = 34;
 const ZIP = 3;
 const FAN = 24;
 // Gap where a cord or the cable meets a module, so each part reads on its own.
@@ -335,7 +329,7 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
     const outer = b.a1 - Math.sign(b.a1 - b.a0) * 24;
     const labelAt =
       orientation === 'horizontal'
-        ? { x: mid, y: TOP - PAD.cassette - 18 - (subLines(b.sub) - 1) * SUB_LINE - (order % 2) * 50 }
+        ? { x: mid, y: TOP - PAD.cassette - 18 - (subLines(b.sub) - 1) * SUB_LINE - (order % 2) * 58 }
         : map(b.kind === 'equipment' || b.kind === 'optic' ? outer : mid, extent / 2);
     return {
       id: `${b.side ?? 'mid'}-${b.kind}-${i}`,
@@ -388,7 +382,7 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
     if (!f || !q || !a || !b) return [];
     const sgn = Math.sign(q.along - f.along);
     const zip = (a.across + b.across) / 2 + (h.pos === 'A' ? -ZIP : ZIP);
-    const out = f.along + sgn * (FRONT_ROOM + CONN);
+    const out = f.along + sgn * (10 + GAP + CONN);
     const inn = q.along - sgn * (10 + GAP + CONN);
     return [
       map(out, f.across),
@@ -407,7 +401,7 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
         const q = at.get(`${side}:equipment|${port}${pos}`);
         if (!f || !q) continue;
         const sgn = Math.sign(q.along - f.along);
-        connectors.push(rect(f.along + sgn * FRONT_ROOM, f.along + sgn * (FRONT_ROOM + CONN), f.across, CONN_ACROSS));
+        connectors.push(rect(f.along + sgn * (10 + GAP), f.along + sgn * (10 + GAP + CONN), f.across, CONN_ACROSS));
         connectors.push(rect(q.along - sgn * (10 + GAP), q.along - sgn * (10 + GAP + CONN), q.across, CONN_ACROSS));
       }
     }
@@ -423,19 +417,11 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
     // path up to hop k, so the step control still moves hop by hop.
     const route: Point[] = [];
     const upTo: number[] = [];
-    // Route indices whose segment in is not drawn: module front ↔ cord connector.
-    const gaps = new Set<number>();
     t.hops.forEach((h, k) => {
       const prev = t.hops[k - 1];
       if (prev && prev.side === h.side) {
-        if (prev.at === 'front' && h.at === 'equipment') {
-          gaps.add(route.length);
-          route.push(...cordWay(prev, h));
-        }
-        if (prev.at === 'equipment' && h.at === 'front') {
-          route.push(...cordWay(h, prev).reverse());
-          gaps.add(route.length);
-        }
+        if (prev.at === 'front' && h.at === 'equipment') route.push(...cordWay(prev, h));
+        if (prev.at === 'equipment' && h.at === 'front') route.push(...cordWay(h, prev).reverse());
       }
       const p = slotById.get(ids[k]);
       if (p) route.push(p);
@@ -445,8 +431,7 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
     const trunkHop = trunkHops.find((h) => h.side === 'left') ?? trunkHops[0];
     const colour = trunkHop ? fibreColour(trunkHop.pos, trunk.positions) : { name: 'Unknown', hex: '#80a5d9' };
     const ends = upTo.filter((n) => n > 0);
-    const prefixes = ends.map((n) => pathThrough(route.slice(0, n), orientation, gaps));
-    const motionPrefixes = ends.map((n) => pathThrough(route.slice(0, n), orientation));
+    const prefixes = ends.map((n) => pathThrough(route.slice(0, n), orientation));
     const arr = t.arrival;
     const end: FibreGeom['end'] =
       (arr.kind === 'equipment' || arr.kind === 'optic') && arr.role !== 'unused' ? arr.role : arr.kind === 'unpatched' && outcome === 'mapped' ? 'land' : 'dark';
@@ -458,8 +443,6 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
       colourName: colour.tracer ? `${colour.name} with ${colour.tracer.name}` : colour.name,
       d: prefixes[prefixes.length - 1] ?? '',
       prefixes,
-      motion: motionPrefixes[motionPrefixes.length - 1] ?? '',
-      motionPrefixes,
       points,
       slotIds: ids,
       outcome,
@@ -498,33 +481,46 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
   const width = orientation === 'horizontal' ? total : GUTTER * 2 + extent + NOTE_ROOM;
   const drawn = orientation === 'horizontal' ? TOP + extent + 56 : total - 2 * ALONG.margin + 140;
 
-  // 5. The parts list and result, so a copied picture explains itself.
-  const LINE = 17;
-  const perLine = orientation === 'horizontal' ? 220 : Math.floor((width - 2 * GUTTER) / 6.2);
+  // 5. The parts list and result, so a copied picture explains itself:
+  //    End A on the left, End B on the right, the cable and the result
+  //    centred. Side by side on a wide drawing, stacked on a phone.
+  const LINE = 18;
+  const CHAR = 7;
+  const sum = summaryLines(link, result);
   const summary: LinkGeom['summary'] = [];
-  let y = drawn + 18;
-  summaryLines(link, result).forEach((text, i, all) => {
-    for (const line of wrap(text, perLine)) {
-      summary.push({ x: GUTTER, y, text: line, strong: i === all.length - 1 });
-      y += LINE;
-    }
-  });
+  const xOf = { start: GUTTER, middle: width / 2, end: width - GUTTER } as const;
+  const block = (lines: string[], anchor: keyof typeof xOf, y0: number, chars: number, first = true) => {
+    let y = y0;
+    lines.forEach((text, i) => {
+      for (const line of wrap(text, chars)) {
+        summary.push({ x: xOf[anchor], y, text: line, anchor, strong: first && i === 0 });
+        y += LINE;
+      }
+    });
+    return y;
+  };
+  let y = drawn + 20;
+  const wide = orientation === 'horizontal';
+  const chars = wide ? Math.floor(width / 3 / CHAR) - 4 : Math.floor((width - 2 * GUTTER) / CHAR);
+  if (wide) {
+    y = Math.max(block(sum.left, 'start', y, chars), block(sum.middle, 'middle', y, chars), block(sum.right, 'end', y, chars));
+  } else {
+    y = block(sum.left, 'start', y, chars) + 8;
+    y = block(sum.middle, 'middle', y, chars) + 8;
+    y = block(sum.right, 'end', y, chars);
+  }
+  y = block([sum.result], 'middle', y + 10, wide ? 200 : chars) + 4;
   return { orientation, width, height: y + 6, stations, boxes, connectors, fibres, summary };
 }
 
-/** Smooth path through points: each hop is an S-curve along the link. The
- *  segment into each index in `gaps` is skipped (a break in the drawing). */
-export function pathThrough(points: Point[], orientation: Orientation, gaps?: ReadonlySet<number>): string {
+/** Smooth path through points: each hop is an S-curve along the link. */
+export function pathThrough(points: Point[], orientation: Orientation): string {
   if (!points.length) return '';
   const f = (n: number) => Math.round(n * 10) / 10;
   let d = `M${f(points[0].x)} ${f(points[0].y)}`;
   for (let i = 1; i < points.length; i++) {
     const p = points[i - 1];
     const q = points[i];
-    if (gaps?.has(i)) {
-      d += ` M${f(q.x)} ${f(q.y)}`;
-      continue;
-    }
     if (orientation === 'horizontal') {
       const m = (q.x - p.x) / 2;
       d += ` C${f(p.x + m)} ${f(p.y)} ${f(q.x - m)} ${f(q.y)} ${f(q.x)} ${f(q.y)}`;

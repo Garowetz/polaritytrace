@@ -102,13 +102,13 @@
 
 .labelMain {
   font-family: var(--font-title);
-  font-size: 12.5px;
+  font-size: 14.5px;
   fill: var(--text);
   letter-spacing: 0.02em;
 }
 
 .labelSub {
-  font-size: 10.5px;
+  font-size: 12.5px;
   fill: var(--text-muted);
 }
 
@@ -265,7 +265,7 @@
 }
 
 .summary text {
-  font-size: 12px;
+  font-size: 13px;
   fill: var(--text-muted);
 }
 

@@ -8,12 +8,26 @@ describe('the parts list under the drawing', () => {
   it('names every part with its spec, and the result', () => {
     const config = presets.find((p) => p.id === 'method-a')!.config;
     const lines = summaryLines(resolveLink(config, catalog), evaluateLink(config, catalog));
-    expect(lines).toEqual([
-      'End A: Type A cassette · Front: 6 × LC/UPC · MPO: MPO/APC-12F-Down, male · Patch cords: A-to-B (standard), Ends: LC/UPC to LC/UPC · Plugged into: equipment ports',
-      'MPO cable: Type A trunk · MPO: MPO/APC-12F-F/F, singlemode',
-      'End B: Type A cassette · Front: 6 × LC/UPC · MPO: MPO/APC-12F-Down, male · Patch cords: A-to-A, Ends: LC/UPC to LC/UPC · Plugged into: equipment ports',
-      'Result: Works · TIA Method A · 6 of 6 channels deliver Tx to Rx',
-    ]);
+    expect(lines).toEqual({
+      left: [
+        'End A: Type A cassette',
+        'Front: 12 × LC/UPC',
+        'MPO/APC - 12F - Down - Male',
+        'Patch cords: A-to-B (standard)',
+        'Ends: LC/UPC to LC/UPC',
+        'Plugged into: equipment ports',
+      ],
+      middle: ['MPO cable: Type A trunk', 'MPO/APC - 12F - F/F · Singlemode'],
+      right: [
+        'End B: Type A cassette',
+        'Front: 12 × LC/UPC',
+        'MPO/APC - 12F - Down - Male',
+        'Patch cords: A-to-A',
+        'Ends: LC/UPC to LC/UPC',
+        'Plugged into: equipment ports',
+      ],
+      result: 'Result: Works · TIA Method A · 6 of 6 channels deliver Tx to Rx',
+    });
   });
 
   it('wraps long lines at spaces', () => {

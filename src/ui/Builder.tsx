@@ -3,6 +3,7 @@ import type { Preset } from '../data/presets';
 import { defaultPolish, NO_EQUIPMENT, type CableConfig, type Catalog, type Fibre, type LinkConfig, type Polish, type Side } from '../engine';
 import styles from './Builder.module.css';
 import { applyChoice, cordsFor, pickableCassettes, pickableEquipment, pickableMpoOptics, selectedId, sideTitle, type PickerTarget } from './choices';
+import { frontCount } from './describe';
 import { CassetteMini, CordMini, NoneMini, OpticMini, TrunkMini } from './MiniDiagram';
 import { Picker, type TileGroup } from './Picker';
 
@@ -39,7 +40,7 @@ export function Builder({ catalog, config, onChange, presets, activePreset, pick
         return { label: o.label, sub: `MPO optic · ${o.connector}`, review: !o.verified };
       }
       const c = catalog.cassettes.find((x) => x.id === end.cassette)!;
-      return { label: c.label, sub: `${footprintLabel(c.positions, c.litPositions.length)} → ${c.frontMap.length} × ${c.frontConnector}`, review: !c.verified };
+      return { label: c.label, sub: `${footprintLabel(c.positions, c.litPositions.length)} → ${frontCount(c)} × ${c.frontConnector}`, review: !c.verified };
     }
     if (end.kind !== 'cassette') return { label: '', sub: '', review: false };
     if (t.what === 'cord') {

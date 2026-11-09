@@ -28,7 +28,6 @@ export function Canvas({ geom, focus, onHover, onPin, stepHop, animate, onBox }:
   const stepping = stepHop !== null && stepHop >= 0;
   const visible = stepping ? geom.fibres.filter((f) => f.direction === 'forward') : geom.fibres;
   const pathOf = (f: FibreGeom) => (stepping ? f.prefixes[Math.min(stepHop!, f.prefixes.length - 1)] : f.d);
-  const motionOf = (f: FibreGeom) => (stepping ? f.motionPrefixes[Math.min(stepHop!, f.motionPrefixes.length - 1)] : f.motion);
   const done = (f: FibreGeom) => !stepping || stepHop! >= f.points.length - 1;
   const current = stepping
     ? new Set(visible.map((f) => f.slotIds[Math.min(stepHop!, f.slotIds.length - 1)]))
@@ -108,7 +107,7 @@ export function Canvas({ geom, focus, onHover, onPin, stepHop, animate, onBox }:
                 <animateMotion
                   dur={`${stepping ? 1.4 : PULSE_SECONDS}s`}
                   repeatCount="indefinite"
-                  path={motionOf(f)}
+                  path={pathOf(f)}
                   begin={`-${((i * 0.37) % PULSE_SECONDS).toFixed(2)}s`}
                 />
               </circle>
@@ -128,7 +127,7 @@ export function Canvas({ geom, focus, onHover, onPin, stepHop, animate, onBox }:
 
       <g className={styles.summary}>
         {geom.summary.map((s, i) => (
-          <text key={i} x={s.x} y={s.y} className={s.strong ? styles.summaryStrong : undefined}>
+          <text key={i} x={s.x} y={s.y} textAnchor={s.anchor} className={s.strong ? styles.summaryStrong : undefined}>
             {s.text}
           </text>
         ))}
@@ -185,7 +184,7 @@ function BoxShape({ box, onBox }: { box: BoxGeom; onBox?: (b: BoxGeom) => void }
 
 function BoxLabel({ box, vertical, onBox }: { box: BoxGeom; vertical: boolean; onBox?: (b: BoxGeom) => void }) {
   const sub = box.sub ? box.sub.split('\n') : [];
-  const pillW = Math.max(box.label.length, ...sub.map((l) => l.length)) * 6.4 + 18;
+  const pillW = Math.max(box.label.length, ...sub.map((l) => l.length)) * 7.4 + 20;
   return (
     <g className={`${styles.box} ${styles[`box_${box.kind}`]}`}>
       {box.notes?.map((n) => (
@@ -205,13 +204,13 @@ function BoxLabel({ box, vertical, onBox }: { box: BoxGeom; vertical: boolean; o
             onBox?.(box);
           }}
         >
-          {vertical && <rect x={-pillW / 2} y={-15} width={pillW} height={22 + sub.length * 14} rx={8} className={styles.pill} />}
+          {vertical && <rect x={-pillW / 2} y={-17} width={pillW} height={25 + sub.length * 16} rx={8} className={styles.pill} />}
           <text textAnchor="middle" className={styles.labelMain}>
             {box.label}
             {box.underReview ? ' *' : ''}
           </text>
           {sub.map((line, i) => (
-            <text key={i} textAnchor="middle" y={14 * (i + 1)} className={styles.labelSub}>
+            <text key={i} textAnchor="middle" y={16 * (i + 1)} className={styles.labelSub}>
               {line}
             </text>
           ))}
