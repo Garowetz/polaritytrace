@@ -6,4 +6,5 @@ export { checkInterop, scopeIssues, type InteropResult } from './interop';
 export { METHOD_NAMES, detectMethod } from './methods';
 export { resolveLink, defaultPolish, UnknownComponentError } from './resolve';
 export { trace, type Source } from './trace';
+export { frontNumber } from './channels';
 export { walkSteps, type Step } from './steps';

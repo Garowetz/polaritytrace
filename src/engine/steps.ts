@@ -49,12 +49,12 @@ function stepFor(link: ResolvedLink, prev: Hop, cur: Hop, i: number): Step {
   const opt = (s: Side) => link[s] as ResolvedOpticEnd;
   if (prev.at === 'equipment' && cur.at === 'front') {
     const cord = cas(prev.side).cordFor(prev.port);
-    return { hop: i, title: `${Side_(prev.side)} patch cord: ${cord.label}`, text: `Equipment position ${prev.pos} arrives at cassette port ${cur.port}, position ${cur.pos}.` };
+    return { hop: i, title: `${Side_(prev.side)} patch cord: ${cord.label}`, text: `Equipment port ${prev.port} ${prev.role === 'tx' ? 'Tx' : 'Rx'} arrives at module port ${frontNumber(cur.port, cur.pos)}.` };
   }
   if (prev.at === 'front' && cur.at === 'internal') {
     const end = cas(prev.side);
     const flipped = end.frontOrientation === 'B-A' ? ' Its front adapters are mounted B-A.' : '';
-    return { hop: i, title: end.def.label, text: `Port ${prev.port} position ${prev.pos} is wired to internal MPO position ${cur.pos}.${flipped}` };
+    return { hop: i, title: end.def.label, text: `Module port ${frontNumber(prev.port, prev.pos)} is wired to internal MPO position ${cur.pos}.${flipped}` };
   }
   if (prev.at === 'internal' && cur.at === 'trunk') {
     return { hop: i, title: adapterName(cas(prev.side).def.rearAdapter), text: `Cassette MPO position ${prev.pos} meets trunk position ${cur.pos}.` };
@@ -81,13 +81,13 @@ function stepFor(link: ResolvedLink, prev: Hop, cur: Hop, i: number): Step {
     };
   }
   if (prev.at === 'internal' && cur.at === 'front') {
-    return { hop: i, title: cas(cur.side).def.label, text: `Internal MPO position ${prev.pos} is wired to port ${cur.port}, position ${cur.pos}.` };
+    return { hop: i, title: cas(cur.side).def.label, text: `Internal MPO position ${prev.pos} is wired to module port ${frontNumber(cur.port, cur.pos)}.` };
   }
   if (prev.at === 'front' && cur.at === 'equipment') {
     const end = cas(cur.side);
     const cord = end.cordFor(cur.port);
     const lands = cur.role === 'rx' ? 'Rx ✓' : 'Tx ✕ (light meets a transmitter)';
-    return { hop: i, title: `${Side_(cur.side)} patch cord: ${cord.label}`, text: `Cassette position ${prev.pos} arrives at ${end.equipment.label} port ${cur.port}, position ${cur.pos}: ${lands}.` };
+    return { hop: i, title: `${Side_(cur.side)} patch cord: ${cord.label}`, text: `Module port ${frontNumber(prev.port, prev.pos)} arrives at ${end.equipment.label} port ${cur.port}: ${lands}.` };
   }
   return { hop: i, title: 'Next', text: '' };
 }

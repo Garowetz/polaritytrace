@@ -11,7 +11,7 @@ function describeArrival(a: Arrival): string {
     case 'unterminated':
       return `cassette MPO position ${a.pos} is not wired to any front port`;
     case 'unpatched':
-      return `front port ${a.port} has nothing patched`;
+      return `module port ${frontNumber(a.port, a.pos)} has nothing patched`;
     case 'equipment':
       return `port ${a.port} ${a.role === 'tx' ? 'Tx' : 'Rx'} (position ${a.pos})`;
     case 'optic':

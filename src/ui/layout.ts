@@ -1,5 +1,5 @@
 import { fibreColour } from '../data/colours';
-import { resolveLink, trace, type Catalog, type ChannelOutcome, type FibreTrace, type Hop, type LinkConfig, type LinkResult, type PolarityType, type Side } from '../engine';
+import { frontNumber, resolveLink, trace, type Catalog, type ChannelOutcome, type FibreTrace, type Hop, type LinkConfig, type LinkResult, type PolarityType, type Side } from '../engine';
 import type { ResolvedEnd } from '../engine/resolve';
 
 // Pure geometry: turns engine output into points and paths. No React here, and
@@ -132,7 +132,8 @@ function duplexSlots(ports: number[], equipment: boolean): RawSlot[] {
     order.forEach((pos, j) => {
       out.push({
         key: `${port}${pos}`,
-        label: equipment ? (pos === 'B' ? 'Tx' : 'Rx') : pos,
+        // Module fronts number every connector: 1, 2, 3 … Equipment ports are duplex.
+        label: equipment ? (pos === 'B' ? 'Tx' : 'Rx') : `${frontNumber(port, pos)}`,
         port,
         role: equipment ? (pos === 'B' ? 'tx' : 'rx') : undefined,
         lit: true,

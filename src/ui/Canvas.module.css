@@ -239,6 +239,14 @@
   fill: var(--text);
 }
 
+.frontLabel {
+  font-family: var(--font-title);
+  font-size: 11px;
+  font-weight: 700;
+  fill: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
 .portLabel {
   font-family: var(--font-title);
   font-size: 13px;

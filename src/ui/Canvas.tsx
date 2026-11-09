@@ -219,7 +219,7 @@ function Station({
   const anchor = vertical ? 'middle' : station.labelDir > 0 ? 'start' : 'end';
   const at = (s: SlotGeom, extra = 0) => (vertical ? { x: s.x, y: s.y + off + Math.sign(off) * extra } : { x: s.x + off + Math.sign(off) * extra, y: s.y });
   const showNumbers = station.kind === 'trunk' || station.kind === 'optic';
-  const ports = station.kind === 'front' || station.kind === 'equipment';
+  const ports = station.kind === 'equipment';
 
   return (
     <g className={styles.station}>
@@ -240,6 +240,11 @@ function Station({
             <circle cx={s.x} cy={s.y} r={3.6} className={styles.dot} />
             {showNumbers && (
               <text x={label.x} y={label.y} textAnchor={anchor} dominantBaseline="central" className={styles.posLabel}>
+                {s.label}
+              </text>
+            )}
+            {station.kind === 'front' && (
+              <text x={label.x} y={label.y} textAnchor={anchor} dominantBaseline="central" className={styles.frontLabel}>
                 {s.label}
               </text>
             )}
