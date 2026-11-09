@@ -14,6 +14,7 @@ import type {
   Side,
   TrunkDef,
 } from './types';
+import { NO_EQUIPMENT } from './types';
 
 // Turns a LinkConfig (ids + options, what the URL stores) into resolved
 // component definitions with every default filled in.
@@ -37,6 +38,8 @@ export interface ResolvedCassetteEnd {
   fibre: Fibre;
   cordFor: (port: number) => DuplexCordDef;
   equipment: OpticDef;
+  /** Nothing plugged in: no cords, no equipment, no patched ports. */
+  bare: boolean;
   fec?: FecMode;
   patched: ReadonlySet<number>;
 }
@@ -80,7 +83,8 @@ function resolveEnd(end: EndConfig, side: Side, cable: { fibre: Fibre; polish: P
     overrides.set(Number(port), find(catalog.cords, id, 'cord'));
   }
   const ports = def.frontMap.length;
-  const patched = new Set(end.patchedPorts ?? def.frontMap.map((f) => f.port));
+  const bare = end.equipment === NO_EQUIPMENT;
+  const patched = new Set(bare ? [] : (end.patchedPorts ?? def.frontMap.map((f) => f.port)));
   return {
     kind: 'cassette',
     side,
@@ -92,7 +96,9 @@ function resolveEnd(end: EndConfig, side: Side, cable: { fibre: Fibre; polish: P
     polish: end.polish ?? cable.polish,
     fibre: end.fibre ?? cable.fibre,
     cordFor: (port) => overrides.get(port) ?? cord,
-    equipment: find(catalog.optics, end.equipment, 'optic'),
+    // A bare end keeps the generic port so checks that read it stay simple.
+    equipment: bare ? find(catalog.optics, catalog.optics.find((o) => o.generic)?.id ?? NO_EQUIPMENT, 'generic port') : find(catalog.optics, end.equipment, 'optic'),
+    bare,
     fec: end.fec,
     patched,
   };

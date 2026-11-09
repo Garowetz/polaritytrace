@@ -153,6 +153,9 @@ export interface Catalog {
 export type Mount = 'upright' | 'inverted';
 export type FrontOrientation = 'A-B' | 'B-A';
 
+/** Plugged into: nothing. The end is just the module, with no cords or equipment. */
+export const NO_EQUIPMENT = 'none';
+
 export interface CassetteEnd {
   kind: 'cassette';
   cassette: string;
@@ -165,7 +168,7 @@ export interface CassetteEnd {
   cord: string;
   /** Per-port cord override, keyed by printed port number. */
   cordOverrides?: Readonly<Record<number, string>>;
-  /** Duplex optic id on each patched port, or the generic equipment port. */
+  /** Duplex optic id on each patched port, the generic equipment port, or NO_EQUIPMENT. */
   equipment: string;
   fec?: FecMode;
   /** Printed ports that are patched. Default: all. */
@@ -230,7 +233,8 @@ export interface FibreTrace {
   arrival: Arrival;
 }
 
-export type ChannelOutcome = 'tx-to-rx' | 'tx-to-tx' | 'split' | 'dark';
+/** 'mapped': an end has nothing plugged in, so the channel only shows where a port lands. */
+export type ChannelOutcome = 'tx-to-rx' | 'tx-to-tx' | 'split' | 'dark' | 'mapped';
 
 export interface Channel {
   id: string;
@@ -257,6 +261,8 @@ export interface LinkResult {
   method: MethodId | null;
   channels: Channel[];
   issues: Issue[];
+  /** An end has nothing plugged in: the channels are a port map, not a polarity check. */
+  portMap: boolean;
   /** Front ports that no light reaches, per side. */
   darkPorts: { side: Side; port: number }[];
   /** Components in this link that are not VERIFIED. */

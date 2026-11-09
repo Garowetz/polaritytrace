@@ -1,3 +1,4 @@
+import { frontNumber } from './channels';
 import { METHOD_NAMES } from './methods';
 import { resolveLink, type ResolvedCassetteEnd, type ResolvedLink, type ResolvedOpticEnd } from './resolve';
 import type { Catalog, Hop, LinkConfig, LinkResult, PolarityType, Side } from './types';
@@ -36,6 +37,9 @@ function startStep(link: ResolvedLink, h: Hop): Step {
       title: end.def.label,
       text: `Lane ${h.lane} transmits from position ${h.pos}. Lanes 1–${n} transmit on positions 1–${n} and receive on the mirror-image positions.`,
     };
+  }
+  if (h.at === 'front') {
+    return { hop: 0, title: `${Side_(h.side)} port ${frontNumber(h.port, h.pos)}`, text: 'Nothing is plugged in, so the light enters at this front port.' };
   }
   return { hop: 0, title: 'Start', text: 'Light enters the link.' };
 }
@@ -107,8 +111,10 @@ export function walkSteps(config: LinkConfig, catalog: Catalog, result: LinkResu
   const method = result.method ? `${METHOD_NAMES[result.method]}. ` : '';
   steps.push({
     hop: -1,
-    title: 'Every channel',
-    text: `${method}${ok} of ${result.channels.length} channels deliver Tx to Rx, in both directions.`,
+    title: result.portMap ? 'Port map' : 'Every channel',
+    text: result.portMap
+      ? `${method}Each fibre is shown arriving where it lands. Add patch cords and equipment to check polarity.`
+      : `${method}${ok} of ${result.channels.length} channels deliver Tx to Rx, in both directions.`,
   });
   return steps;
 }

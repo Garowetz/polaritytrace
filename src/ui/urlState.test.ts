@@ -43,6 +43,13 @@ describe('link in the URL', () => {
     expect(decodeLink(url, catalog, presets)).toEqual(c);
   });
 
+  it('keeps an end with nothing plugged in', () => {
+    const c: LinkConfig = { ...methodA, right: cassetteEnd('cas-a-12', 'lc-aa', { equipment: 'none' }) };
+    const url = encodeLink(c, presets);
+    expect(url).toBe('?a=cas-a-12~lc-ab&t=trunk-a-12~SMF~APC&b=cas-a-12~lc-aa~eq:none');
+    expect(decodeLink(url, catalog, presets)).toEqual(c);
+  });
+
   it('a preset written out in full is recognised as the preset', () => {
     const full = '?a=cas-a-12~lc-ab&t=trunk-a-12~SMF~APC&b=cas-a-12~lc-aa';
     expect(decodeLink(full, catalog, presets)).toBe(methodA);

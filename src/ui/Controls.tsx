@@ -15,6 +15,7 @@ const OUTCOME: Record<ChannelOutcome, { icon: string; text: string }> = {
   'tx-to-tx': { icon: '✕', text: 'Tx hits Tx' },
   split: { icon: '!', text: 'Only one direction works' },
   dark: { icon: '○', text: 'No light' },
+  mapped: { icon: '→', text: 'Lands on' },
 };
 
 interface VerdictProps {
@@ -27,18 +28,20 @@ interface VerdictProps {
 }
 
 export function VerdictStrip({ result, fixes, onApply, pinned, onPin }: VerdictProps) {
-  const v = VERDICT_TEXT[result.verdict];
+  // With nothing plugged in at an end there is no polarity to pass or fail.
+  const map = result.portMap && (result.verdict === 'PASS' || result.verdict === 'WARN');
+  const v = map ? { icon: '→', text: 'Port map' } : VERDICT_TEXT[result.verdict];
   const ok = result.channels.filter((c) => c.outcome === 'tx-to-rx').length;
   const issues = [...result.issues].sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]).slice(0, 4);
   return (
-    <section className={`${styles.verdict} ${styles[`v_${result.verdict}`]}`} aria-live="polite">
+    <section className={`${styles.verdict} ${styles[`v_${map ? 'MAP' : result.verdict}`]}`} aria-live="polite">
       <div className={styles.verdictHead}>
         <span className={styles.badge}>
           <span aria-hidden="true">{v.icon}</span> {v.text}
         </span>
         <span className={styles.meta}>
           {result.method ? METHOD_NAMES[result.method] : 'No standard method'}
-          {result.channels.length > 0 && ` · ${ok} of ${result.channels.length} channels deliver Tx to Rx`}
+          {result.channels.length > 0 && !result.portMap && ` · ${ok} of ${result.channels.length} channels deliver Tx to Rx`}
         </span>
       </div>
       {result.channels.length > 0 && (

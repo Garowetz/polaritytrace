@@ -264,6 +264,12 @@
   stroke-linecap: round;
 }
 
+.arriveLand {
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 2;
+}
+
 .arriveDark {
   fill: none;
   stroke: var(--text-muted);

@@ -1,6 +1,6 @@
 import type { ResolvedCassetteEnd, ResolvedLink, ResolvedOpticEnd } from './resolve';
 import { slotOf, trace } from './trace';
-import type { Arrival, Channel, FibreTrace, Side } from './types';
+import type { Arrival, Channel, DuplexPos, FibreTrace, Side } from './types';
 
 // Builds per-channel verdicts from fibre traces (reference §8 algorithm).
 
@@ -160,4 +160,89 @@ export function darkPorts(link: ResolvedLink, channels: Channel[]): { side: Side
     for (const fp of end.def.frontMap) if (!lit.has(fp.port)) out.push({ side, port: fp.port });
   }
   return out;
+}
+
+/** Front fibre number as printed: port p's A is 2p−1 and its B is 2p. */
+export const frontNumber = (port: number, pos: DuplexPos) => 2 * port - (pos === 'A' ? 1 : 0);
+
+/** The same fibre walked the other way, so a receive fibre is drawn arriving. */
+function reversed(t: FibreTrace, link: ResolvedLink): FibreTrace {
+  const hops = [...t.hops].reverse();
+  const h = hops[hops.length - 1];
+  const arrival: Arrival =
+    h.at === 'equipment'
+      ? { kind: 'equipment', side: h.side, port: h.port, pos: h.pos, role: h.role, slot: slotOf(link[h.side] as ResolvedCassetteEnd, h.port) }
+      : h.at === 'optic'
+        ? { kind: 'optic', side: h.side, pos: h.pos, role: h.role, lane: h.lane }
+        : { kind: 'dark', side: h.side, pos: 0 };
+  return { hops, arrival };
+}
+
+function landing(a: Arrival): string {
+  return a.kind === 'unpatched' ? `${sideName(a.side)} port ${frontNumber(a.port, a.pos)}` : describeArrival(a);
+}
+
+const mapped = (t: FibreTrace) => (t.arrival.kind === 'unpatched' ? 'mapped' : 'dark');
+
+/**
+ * At least one cassette end has nothing plugged in, so there is no Tx/Rx pair
+ * to check. Each channel shows where light from the other end lands, or, when
+ * both ends are bare, where each End A front port arrives at End B.
+ */
+export function mapChannels(link: ResolvedLink): Channel[] {
+  const bare = (s: Side) => link[s].kind === 'cassette' && (link[s] as ResolvedCassetteEnd).bare;
+  const src: Side | null = !bare('left') ? 'left' : !bare('right') ? 'right' : null;
+
+  if (src === null) {
+    const left = link.left as ResolvedCassetteEnd;
+    return left.def.frontMap.flatMap(({ port }) =>
+      (['A', 'B'] as const).map((pos) => {
+        const n = frontNumber(port, pos);
+        const forward = trace(link, { side: 'left', at: 'front', port, pos });
+        return {
+          id: `fibre-${n}`,
+          label: `Port ${n}`,
+          forward,
+          back: { hops: [], arrival: forward.arrival },
+          verdict: 'PASS',
+          outcome: mapped(forward),
+          message: `End A port ${n} arrives at ${landing(forward.arrival)}.`,
+        } satisfies Channel;
+      }),
+    );
+  }
+
+  const near = link[src];
+  const sources =
+    near.kind === 'mpoOptic'
+      ? (near.def.mpo?.lanes ?? []).map((l) => ({
+          id: `lane-${l.lane}`,
+          label: `Lane ${l.lane}`,
+          tx: { side: src, at: 'optic', pos: l.tx } as const,
+          rx: { side: src, at: 'optic', pos: l.rx } as const,
+        }))
+      : [...near.patched]
+          .sort((a, b) => a - b)
+          .map((port) => ({
+            id: `port-${port}`,
+            label: `Port ${port}`,
+            tx: { side: src, at: 'equipment', port, pos: 'B' } as const,
+            rx: { side: src, at: 'equipment', port, pos: 'A' } as const,
+          }));
+  return sources.map((s) => {
+    const forward = trace(link, s.tx);
+    const back = reversed(trace(link, s.rx), link);
+    const from = back.hops[0];
+    const rxFrom = from?.at === 'front' ? `${sideName(from.side)} port ${frontNumber(from.port, from.pos)}` : 'nowhere';
+    const who = src === 'left' ? s.label : `${sideName(src)} ${s.label.toLowerCase()}`;
+    return {
+      id: s.id,
+      label: s.label,
+      forward,
+      back,
+      verdict: 'PASS',
+      outcome: mapped(forward),
+      message: `${who} Tx lands on ${landing(forward.arrival)}. Its Rx is fed from ${rxFrom}.`,
+    } satisfies Channel;
+  });
 }

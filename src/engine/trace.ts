@@ -12,6 +12,8 @@ import type { Arrival, DuplexPos, FibreTrace, Hop, Side } from './types';
 
 export type Source =
   | { side: Side; at: 'equipment'; port: number; pos: DuplexPos }
+  /** A bare cassette front port, for port maps when nothing is plugged in. */
+  | { side: Side; at: 'front'; port: number; pos: DuplexPos }
   | { side: Side; at: 'optic'; pos: number };
 
 const other = (side: Side): Side => (side === 'left' ? 'right' : 'left');
@@ -66,10 +68,13 @@ export function trace(link: ResolvedLink, source: Source): FibreTrace {
   let p: number;
 
   // 1. Source → trunk plug at the near end.
-  if (source.at === 'equipment') {
-    if (near.kind !== 'cassette') throw new Error('Equipment source needs a cassette end');
-    hops.push({ at: 'equipment', side: source.side, port: source.port, pos: source.pos, role: equipmentRole(source.pos) });
-    const frontPos = throughCord(near, source.port, source.pos);
+  if (source.at === 'equipment' || source.at === 'front') {
+    if (near.kind !== 'cassette') throw new Error('Equipment or front source needs a cassette end');
+    let frontPos = source.pos;
+    if (source.at === 'equipment') {
+      hops.push({ at: 'equipment', side: source.side, port: source.port, pos: source.pos, role: equipmentRole(source.pos) });
+      frontPos = throughCord(near, source.port, source.pos);
+    }
     hops.push({ at: 'front', side: source.side, port: source.port, pos: frontPos, slot: slotOf(near, source.port) });
     const internal = frontToInternal(near, source.port, frontPos);
     hops.push({ at: 'internal', side: source.side, pos: internal });

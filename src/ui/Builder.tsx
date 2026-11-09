@@ -1,9 +1,9 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import type { Preset } from '../data/presets';
-import type { CableConfig, Catalog, Fibre, LinkConfig, Polish, Side } from '../engine';
+import { defaultPolish, NO_EQUIPMENT, type CableConfig, type Catalog, type Fibre, type LinkConfig, type Polish, type Side } from '../engine';
 import styles from './Builder.module.css';
 import { applyChoice, cordsFor, pickableCassettes, pickableEquipment, pickableMpoOptics, selectedId, sideTitle, type PickerTarget } from './choices';
-import { CassetteMini, CordMini, OpticMini, TrunkMini } from './MiniDiagram';
+import { CassetteMini, CordMini, NoneMini, OpticMini, TrunkMini } from './MiniDiagram';
 import { Picker, type TileGroup } from './Picker';
 
 // Three independent parts: End A, the MPO cable, End B. Each part opens a
@@ -46,6 +46,7 @@ export function Builder({ catalog, config, onChange, presets, activePreset, pick
       const c = catalog.cords.find((x) => x.id === end.cord)!;
       return { label: c.label, sub: `${c.ends.cassette} to ${c.ends.equipment}`, review: !c.verified };
     }
+    if (end.equipment === NO_EQUIPMENT) return { label: 'None', sub: 'Module only', review: false };
     const o = catalog.optics.find((x) => x.id === end.equipment)!;
     return { label: o.generic ? 'Equipment port' : `${o.label} optics`, sub: o.generic ? 'Tx | Rx' : `${o.formFactor} · ${fibreName(o.fibre)}`, review: !o.verified };
   };
@@ -57,16 +58,24 @@ export function Builder({ catalog, config, onChange, presets, activePreset, pick
         <PartButton field="Part" {...nameOf({ what: 'part', side })} onClick={() => onPicker({ what: 'part', side })} />
         {end.kind === 'cassette' && (
           <>
-            <PartButton field="Patch cords" {...nameOf({ what: 'cord', side })} onClick={() => onPicker({ what: 'cord', side })} />
+            {end.equipment !== NO_EQUIPMENT && (
+              <PartButton field="Patch cords" {...nameOf({ what: 'cord', side })} onClick={() => onPicker({ what: 'cord', side })} />
+            )}
             <PartButton field="Plugged into" {...nameOf({ what: 'equipment', side })} onClick={() => onPicker({ what: 'equipment', side })} />
-            <label className={styles.check}>
-              <input
-                type="checkbox"
-                checked={end.mount === 'inverted'}
-                onChange={(e) => onChange({ ...config, [side]: { ...end, mount: e.target.checked ? 'inverted' : undefined } })}
-              />
-              Mounted upside down
-            </label>
+            <div className={styles.checkRow}>
+              <label className={styles.check}>
+                <input
+                  type="checkbox"
+                  checked={end.mount === 'inverted'}
+                  onChange={(e) => onChange({ ...config, [side]: { ...end, mount: e.target.checked ? 'inverted' : undefined } })}
+                />
+                Mounted upside down
+              </label>
+              <Tip label="What mounted upside down means">
+                The module is installed flipped over in the panel. Its MPO key faces the other way and its port numbers run in reverse. Some
+                methods, such as Method B, need one end flipped.
+              </Tip>
+            </div>
           </>
         )}
       </Card>
@@ -204,6 +213,19 @@ function pickerContent(catalog: Catalog, config: LinkConfig, t: PickerTarget): {
           picture: <OpticMini optic={x} />,
         })),
       },
+      {
+        title: 'Nothing',
+        tiles: [
+          {
+            id: NO_EQUIPMENT,
+            label: 'None',
+            blurb: 'Just the module, with no patch cords or equipment. Shows where each port lands.',
+            tag: 'Module only',
+            underReview: false,
+            picture: <NoneMini />,
+          },
+        ],
+      },
     ],
   };
 }
@@ -237,7 +259,19 @@ function PartButton({ field, label, sub, review, onClick }: { field: string; lab
   );
 }
 
-function Segmented<T extends string>({ label, value, options, onChange }: { label: string; value: T; options: { value: T; label: string }[]; onChange: (v: T) => void }) {
+function Segmented<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+  hint,
+}: {
+  label: string;
+  value: T;
+  options: { value: T; label: string }[];
+  onChange: (v: T) => void;
+  hint?: string;
+}) {
   return (
     <div className={styles.field} role="radiogroup" aria-label={label}>
       <span className={styles.fieldLabel}>{label}</span>
@@ -248,7 +282,23 @@ function Segmented<T extends string>({ label, value, options, onChange }: { labe
           </button>
         ))}
       </div>
+      {hint && <span className={styles.hint}>{hint}</span>}
     </div>
+  );
+}
+
+/** An (i) button: the text shows on hover with a mouse, and on tap. */
+function Tip({ label, children }: { label: string; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span className={styles.tip} onMouseLeave={() => setOpen(false)}>
+      <button type="button" className={styles.tipButton} aria-label={label} aria-expanded={open} onClick={() => setOpen(!open)} onBlur={() => setOpen(false)}>
+        i
+      </button>
+      <span role="tooltip" className={`${styles.tipText} ${open ? styles.tipOpen : ''}`}>
+        {children}
+      </span>
+    </span>
   );
 }
 
@@ -266,7 +316,10 @@ function CableCard({
   const cable = config.cable;
   const fibre = cable.fibre ?? 'SMF';
   const set = (c: CableConfig) => onChange({ ...config, cable: c });
-  type PolishChoice = Polish | 'usual';
+  const usual = defaultPolish(fibre);
+  // The normal polish for the fibre comes first; picking it leaves the polish
+  // unset so it keeps following the fibre.
+  const polishName = (p: Polish) => (p === 'UPC' && fibre === 'MMF' ? 'PC/UPC' : p);
   return (
     <Card title="MPO cable">
       <PartButton field="Trunk" {...trunk} onClick={onPick} />
@@ -279,15 +332,12 @@ function CableCard({
         ]}
         onChange={(f) => set({ ...cable, fibre: f, polish: undefined })}
       />
-      <Segmented<PolishChoice>
+      <Segmented<Polish>
         label="Polish"
-        value={cable.polish ?? 'usual'}
-        options={[
-          { value: 'usual', label: `Usual (${fibre === 'SMF' ? 'APC' : 'UPC'})` },
-          { value: 'APC', label: 'APC' },
-          { value: 'UPC', label: 'UPC' },
-        ]}
-        onChange={(p) => set({ ...cable, polish: p === 'usual' ? undefined : p })}
+        value={cable.polish ?? usual}
+        options={[usual, usual === 'APC' ? 'UPC' : 'APC'].map((p) => ({ value: p as Polish, label: polishName(p as Polish) }))}
+        onChange={(p) => set({ ...cable, polish: p === usual ? undefined : p })}
+        hint={`${fibre === 'SMF' ? 'Singlemode' : 'Multimode'} MPO is normally ${polishName(usual)}.`}
       />
     </Card>
   );

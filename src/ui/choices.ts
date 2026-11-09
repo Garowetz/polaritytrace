@@ -1,6 +1,6 @@
 import { GENERIC_PORT } from '../data/optics';
 import { cassetteEnd, opticEnd } from '../data/presets';
-import type { CassetteEnd, Catalog, EndConfig, Fibre, LinkConfig, Side } from '../engine';
+import { NO_EQUIPMENT, type CassetteEnd, type Catalog, type EndConfig, type Fibre, type LinkConfig, type Side } from '../engine';
 
 // What each picker offers, and how a choice changes the link. No polarity
 // decisions here: the engine judges whatever the person builds.
@@ -64,5 +64,7 @@ export function applyChoice(c: Catalog, config: LinkConfig, t: PickerTarget, id:
   if (t.what === 'cord') return { ...config, [t.side]: { ...end, cord: id } };
   // New equipment: every port patched again, and a cord that fits it.
   const { patchedPorts: _all, ...rest } = end;
+  // Nothing plugged in: keep the cord so it comes back if equipment is picked again.
+  if (id === NO_EQUIPMENT) return { ...config, [t.side]: { ...rest, equipment: id } };
   return withEnd(c, config, t.side, { ...rest, equipment: id, cord: fitCord(c, end.cord, end.cassette, id) });
 }

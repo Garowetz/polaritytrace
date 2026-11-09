@@ -268,6 +268,7 @@ function Station({
 
 function Arrival({ x, y, end }: { x: number; y: number; end: FibreGeom['end'] }) {
   if (end === 'rx') return <circle cx={x} cy={y} r={7.5} className={styles.arriveOk} />;
+  if (end === 'land') return <circle cx={x} cy={y} r={7.5} className={styles.arriveLand} />;
   if (end === 'tx') {
     return (
       <g className={styles.arriveBad}>

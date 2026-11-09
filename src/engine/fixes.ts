@@ -109,7 +109,8 @@ function candidates(config: LinkConfig, catalog: Catalog): Candidate[] {
 
 export function suggestFixes(config: LinkConfig, catalog: Catalog, limit = 3): Fix[] {
   const base = evaluateLink(config, catalog);
-  if (base.verdict === 'PASS') return [];
+  // A port map has no polarity to fix.
+  if (base.verdict === 'PASS' || base.portMap) return [];
   const fixes: Fix[] = [];
   const seen = new Set<string>();
   for (const c of candidates(config, catalog)) {

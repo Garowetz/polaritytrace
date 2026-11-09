@@ -1,8 +1,8 @@
-import { breakoutChannels, darkPorts, duplexChannels, parallelChannels } from './channels';
+import { breakoutChannels, darkPorts, duplexChannels, mapChannels, parallelChannels } from './channels';
 import { checkInterop, scopeIssues } from './interop';
 import { blockingMechanical, mechanicalIssues } from './mechanical';
 import { detectMethod, methodIssues } from './methods';
-import { resolveLink, type ResolvedLink } from './resolve';
+import { resolveLink, type ResolvedCassetteEnd, type ResolvedLink } from './resolve';
 import type { Catalog, Channel, Described, Issue, LinkConfig, LinkResult, Mode, Sourced, Verdict } from './types';
 
 function modeOf(link: ResolvedLink): Mode {
@@ -64,10 +64,17 @@ export function evaluateLink(config: LinkConfig, catalog: Catalog): LinkResult {
   const blocking = blockingMechanical(link);
   if (blocking.length) {
     const issues = [...blocking, ...scope(link)];
-    return { verdict: 'BLOCK', mode, method: null, channels: [], issues, darkPorts: [], underReview: review };
+    return { verdict: 'BLOCK', mode, method: null, channels: [], issues, portMap: false, darkPorts: [], underReview: review };
   }
 
-  const channels = mode === 'duplex' ? duplexChannels(link) : mode === 'parallel' ? parallelChannels(link) : breakoutChannels(link);
+  const portMap = [link.left, link.right].some((e) => e.kind === 'cassette' && e.bare);
+  const channels = portMap
+    ? mapChannels(link)
+    : mode === 'duplex'
+      ? duplexChannels(link)
+      : mode === 'parallel'
+        ? parallelChannels(link)
+        : breakoutChannels(link);
   const lightOk = channels.length > 0 && channels.every((c) => c.outcome === 'tx-to-rx');
   const method = detectMethod(link, mode);
   const dark = darkPorts(link, channels);
@@ -78,9 +85,14 @@ export function evaluateLink(config: LinkConfig, catalog: Catalog): LinkResult {
     ...interopIssues(link, mode),
     ...scope(link),
   ];
-  if (dark.length && mode === 'breakout') {
+  if (portMap) {
+    const bare = (['left', 'right'] as const).filter((s) => link[s].kind === 'cassette' && (link[s] as ResolvedCassetteEnd).bare);
+    const where = bare.length === 2 ? 'both ends' : bare[0] === 'left' ? 'End A' : 'End B';
+    issues.push({ severity: 'note', code: 'port-map', message: `This shows where each port lands. Add patch cords and equipment at ${where} to check polarity.` });
+  }
+  if (dark.length && mode === 'breakout' && !portMap) {
     const ports = dark.map((d) => d.port).join(', ');
     issues.push({ severity: 'note', code: 'dark-ports', message: `Cassette ports ${ports} carry no lane and stay dark.` });
   }
-  return { verdict: aggregate(channels, issues), mode, method, channels, issues, darkPorts: dark, underReview: review };
+  return { verdict: aggregate(channels, issues), mode, method, channels, issues, portMap, darkPorts: dark, underReview: review };
 }

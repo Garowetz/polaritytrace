@@ -91,6 +91,17 @@ export function OpticMini({ optic }: { optic: OpticDef }) {
   );
 }
 
+/** Plugged into nothing: an empty module front. */
+export function NoneMini() {
+  return (
+    <Frame label="Nothing plugged in: just the module front">
+      <rect x={W / 2 - 22} y={H / 2 - 12} width={44} height={24} rx={6} className={styles.port} strokeDasharray="4 3" />
+      <Dot x={W / 2 - 8} y={H / 2} kind="off" />
+      <Dot x={W / 2 + 8} y={H / 2} kind="off" />
+    </Frame>
+  );
+}
+
 export function CordMini({ cord }: { cord: DuplexCordDef }) {
   const cross = cord.map === 'A-to-B';
   const a = 50;

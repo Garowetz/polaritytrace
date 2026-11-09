@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { catalog } from '../data/catalog';
 import { cassetteEnd, opticEnd, presets } from '../data/presets';
-import { evaluateLink, walkSteps, type EndConfig, type LinkConfig } from '../engine';
+import { evaluateLink, NO_EQUIPMENT, walkSteps, type EndConfig, type LinkConfig } from '../engine';
 import { adapterKeys, layoutLink, type Orientation } from './layout';
 
 const methodAConfig = () => presets.find((p) => p.id === 'method-a')!.config;
@@ -112,5 +112,20 @@ describe('layout', () => {
       }
     }
     expect(n).toBeGreaterThan(1000);
+  });
+
+  it('an end with nothing plugged in draws just the module, and fibres land on its front', () => {
+    const c = methodAConfig();
+    const config: LinkConfig = { ...c, right: { ...(c.right as Extract<EndConfig, { kind: 'cassette' }>), equipment: NO_EQUIPMENT } };
+    const geom = layoutLink(config, evaluateLink(config, catalog), catalog, 'horizontal');
+    const kinds = (side: string) => geom.boxes.filter((b) => b.side === side).map((b) => b.kind);
+    expect(kinds('right')).not.toContain('cord');
+    expect(kinds('right')).not.toContain('equipment');
+    expect(kinds('left')).toContain('equipment');
+    expect(geom.stations.some((s) => s.key === 'right:equipment')).toBe(false);
+    const tx = geom.fibres.filter((f) => f.direction === 'forward');
+    expect(tx).toHaveLength(6);
+    expect(tx.every((f) => f.end === 'land')).toBe(true);
+    expect(walkSteps(config, catalog, evaluateLink(config, catalog)).at(-1)?.title).toBe('Port map');
   });
 });

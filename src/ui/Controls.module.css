@@ -22,6 +22,9 @@
 .v_WARN {
   border-left-color: var(--brand-powder-blue);
 }
+.v_MAP {
+  border-left-color: var(--text-muted);
+}
 .v_FAIL,
 .v_BLOCK {
   border-left-color: var(--brand-coral);
@@ -125,6 +128,10 @@
 
 .o_dark .outcomeIcon {
   border: 1.5px dashed var(--text-muted);
+}
+
+.o_mapped .outcomeIcon {
+  border: 1.5px solid var(--text-muted);
 }
 
 .detailCol {

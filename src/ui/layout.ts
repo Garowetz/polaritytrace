@@ -63,7 +63,8 @@ export interface FibreGeom {
   points: Point[];
   slotIds: string[];
   outcome: ChannelOutcome;
-  end: 'rx' | 'tx' | 'dark';
+  /** 'land': arrives at a bare front port (port map). */
+  end: 'rx' | 'tx' | 'dark' | 'land';
   label: string;
 }
 
@@ -177,8 +178,9 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
       st.push(
         { kind: 'internal', dist: dInt, slots: positionSlots(end.def.positions, end.def.litPositions), labelOut: false },
         { kind: 'front', dist: dFront, slots: duplexSlots(ports, false), labelOut: true },
-        { kind: 'equipment', dist: dEq, slots: duplexSlots(patched, true), labelOut: true },
       );
+      // Nothing plugged in: just the module.
+      if (!end.bare) st.push({ kind: 'equipment', dist: dEq, slots: duplexSlots(patched, true), labelOut: true });
       const cord = end.cordFor(patched[0] ?? 1);
       const eqLabel = patched.length > 1 && !end.equipment.generic ? `${end.equipment.label} × ${patched.length}` : end.equipment.label;
       bx.push(
@@ -199,16 +201,20 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
           sub: `${footprintLabel(end.def.positions, end.def.litPositions.length)} → ${ports.length} × ${end.def.frontConnector}`,
           underReview: !end.def.verified,
         },
-        { kind: 'cord', d0: dFront + 10 + GAP, d1: dEq - 10, label: cord.label, sub: 'patch cords', underReview: !cord.verified },
-        {
-          kind: 'equipment',
-          d0: dEq - 10,
-          d1: dEq + 76,
-          label: eqLabel,
-          sub: end.equipment.generic ? 'Tx | Rx' : end.equipment.formFactor,
-          underReview: !end.equipment.verified,
-        },
       );
+      if (!end.bare) {
+        bx.push(
+          { kind: 'cord', d0: dFront + 10 + GAP, d1: dEq - 10, label: cord.label, sub: 'patch cords', underReview: !cord.verified },
+          {
+            kind: 'equipment',
+            d0: dEq - 10,
+            d1: dEq + 76,
+            label: eqLabel,
+            sub: end.equipment.generic ? 'Tx | Rx' : end.equipment.formFactor,
+            underReview: !end.equipment.verified,
+          },
+        );
+      }
     } else {
       const n = end.def.mpo?.positions ?? trunk.positions;
       const all = Array.from({ length: n }, (_, i) => i + 1);
@@ -318,6 +324,7 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
   // 3. Fibres: one per traced direction of every channel.
   const fibres: FibreGeom[] = [];
   const addFibre = (t: FibreTrace, id: string, channelId: string, direction: FibreGeom['direction'], outcome: ChannelOutcome, label: string) => {
+    if (t.hops.length < 2) return;
     const ids = t.hops.map(slotId);
     const points = ids.map((id) => slotById.get(id)).filter((p): p is SlotGeom => Boolean(p));
     const trunkHops = t.hops.filter((h): h is Extract<Hop, { at: 'trunk' }> => h.at === 'trunk');
@@ -326,7 +333,7 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
     const prefixes = points.map((_, i) => pathThrough(points.slice(0, i + 1), orientation));
     const arr = t.arrival;
     const end: FibreGeom['end'] =
-      (arr.kind === 'equipment' || arr.kind === 'optic') && arr.role !== 'unused' ? arr.role : 'dark';
+      (arr.kind === 'equipment' || arr.kind === 'optic') && arr.role !== 'unused' ? arr.role : arr.kind === 'unpatched' && outcome === 'mapped' ? 'land' : 'dark';
     fibres.push({
       id,
       channelId,
