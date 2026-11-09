@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import styles from './Canvas.module.css';
-import type { BoxGeom, FibreGeom, LinkGeom, SlotGeom, StationGeom } from './layout';
+import type { BoxGeom, FibreGeom, LinkGeom, SheetGeom, SlotGeom, StationGeom } from './layout';
 
 export type Focus = { kind: 'channel'; id: string } | { kind: 'slot'; id: string };
 
@@ -14,11 +14,13 @@ interface Props {
   animate: boolean;
   /** Tapping a drawn component opens its picker. */
   onBox?: (box: BoxGeom) => void;
+  /** Show the parts table on the page, or keep it for the saved picture only. */
+  sheet?: 'show' | 'export';
 }
 
 const PULSE_SECONDS = 3.2;
 
-export function Canvas({ geom, focus, onHover, onPin, stepHop, animate, onBox }: Props) {
+export function Canvas({ geom, focus, onHover, onPin, stepHop, animate, onBox, sheet = 'show' }: Props) {
   const lit = useMemo(() => {
     if (!focus) return null;
     if (focus.kind === 'channel') return new Set([focus.id]);
@@ -37,7 +39,8 @@ export function Canvas({ geom, focus, onHover, onPin, stepHop, animate, onBox }:
   return (
     <svg
       className={`${styles.canvas} ${v ? styles.vertical : styles.horizontal}`}
-      viewBox={`0 0 ${geom.width} ${geom.height}`}
+      viewBox={`0 0 ${geom.width} ${sheet === 'show' ? geom.height : geom.sheet.body + 8}`}
+      data-full-height={geom.height}
       role="group"
       aria-label="Link diagram. Each fibre is a coloured path from a transmitter to where its light arrives."
       onClick={(e) => {
@@ -125,13 +128,7 @@ export function Canvas({ geom, focus, onHover, onPin, stepHop, animate, onBox }:
         <Station key={s.key} station={s} vertical={v} current={current} onHover={onHover} onPin={onPin} />
       ))}
 
-      <g className={styles.summary}>
-        {geom.summary.map((s, i) => (
-          <text key={i} x={s.x} y={s.y} textAnchor={s.anchor} className={s.strong || s.highlight ? styles.summaryStrong : undefined}>
-            {s.highlight ? <Highlighted text={s.text} word={s.highlight.text} className={styles[`tone_${s.highlight.tone}`]} /> : s.text}
-          </text>
-        ))}
-      </g>
+      <Sheet sheet={geom.sheet} hidden={sheet === 'export'} />
 
       <g aria-hidden="true">
         {visible.map((f) => {
@@ -182,28 +179,50 @@ function BoxShape({ box, onBox }: { box: BoxGeom; onBox?: (b: BoxGeom) => void }
   );
 }
 
-function Highlighted({ text, word, className }: { text: string; word: string; className?: string }) {
-  const i = text.indexOf(word);
+function Sheet({ sheet, hidden }: { sheet: SheetGeom; hidden: boolean }) {
+  const p = sheet.pill;
   return (
-    <>
-      {text.slice(0, i)}
-      <tspan className={className}>{word}</tspan>
-      {text.slice(i + word.length)}
-    </>
+    <g className={styles.sheet} data-export={hidden ? 'show' : undefined} style={hidden ? { display: 'none' } : undefined}>
+      {sheet.rects.map((r, i) => (
+        <rect key={i} x={r.x} y={r.y} width={r.w} height={r.h} rx={r.kind === 'frame' ? 10 : 0} className={styles[`sheet_${r.kind}`]} />
+      ))}
+      {sheet.lines.map((l, i) => (
+        <line key={i} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} className={styles.sheetLine} />
+      ))}
+      {sheet.texts.map((t, i) => (
+        <text key={i} x={t.x} y={t.y} textAnchor={t.anchor} dominantBaseline="central" className={styles[`sheet_${t.kind}`]}>
+          {t.text}
+        </text>
+      ))}
+      {p && (
+        <g className={styles[`tone_${p.tone}`]}>
+          <rect x={p.x} y={p.y} width={p.w} height={p.h} rx={p.h / 2} className={styles.pillShape} />
+          <text x={p.x + p.w / 2} y={p.y + p.h / 2} textAnchor="middle" dominantBaseline="central" className={styles.pillText}>
+            {p.text}
+          </text>
+        </g>
+      )}
+    </g>
   );
 }
 
 function BoxLabel({ box, vertical, onBox }: { box: BoxGeom; vertical: boolean; onBox?: (b: BoxGeom) => void }) {
   const sub = box.sub ? box.sub.split('\n') : [];
   const gap = vertical ? 16 : 21;
-  const pillW = Math.max(box.label.length, ...sub.map((l) => l.length)) * 7.4 + 20;
+  // Phones: the equipment label sits in the strip below the port numbers.
+  const small = vertical && box.kind === 'equipment';
+  const pillW = Math.max(box.label.length, ...sub.map((l) => l.length)) * (small ? 6.2 : 7.4) + (small ? 12 : 20);
   return (
     <g className={`${styles.box} ${styles[`box_${box.kind}`]}`}>
       {box.notes?.map((n) => (
         <g key={n.text} className={styles.note}>
           <path d={`M${n.tick[0].x} ${n.tick[0].y} L${n.tick[1].x} ${n.tick[1].y}`} />
           <text x={n.x} y={n.y} textAnchor={n.anchor} dominantBaseline="central">
-            {n.text}
+            {n.text.split('\n').map((line, i, all) => (
+              <tspan key={i} x={n.x} dy={i === 0 ? -(all.length - 1) * 6.5 : 13}>
+                {line}
+              </tspan>
+            ))}
           </text>
         </g>
       ))}
@@ -216,8 +235,8 @@ function BoxLabel({ box, vertical, onBox }: { box: BoxGeom; vertical: boolean; o
             onBox?.(box);
           }}
         >
-          {vertical && <rect x={-pillW / 2} y={-17} width={pillW} height={25 + sub.length * 16} rx={8} className={styles.pill} />}
-          <text textAnchor="middle" className={styles.labelMain}>
+          {vertical && <rect x={-pillW / 2} y={small ? -13 : -17} width={pillW} height={(small ? 18 : 25) + sub.length * 16} rx={8} className={styles.pill} />}
+          <text textAnchor="middle" className={`${styles.labelMain} ${small ? styles.labelSmall : ''}`}>
             {box.label}
             {box.underReview ? ' *' : ''}
           </text>

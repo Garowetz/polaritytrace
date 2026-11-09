@@ -107,6 +107,10 @@
   letter-spacing: 0.02em;
 }
 
+.labelSmall {
+  font-size: 11.5px;
+}
+
 .labelSub {
   font-size: 12.5px;
   fill: var(--text-muted);
@@ -281,34 +285,84 @@
   font-size: 14.5px;
 }
 
-/* A wide drawing is scaled down to fit the page, so its text starts bigger. */
-.horizontal .summary text {
+/* The parts table under the drawing, ruled like a drawing's title block.
+   A wide drawing is scaled down to fit the page, so its text starts bigger. */
+.sheet text {
+  font-size: 13px;
+}
+
+.horizontal .sheet text {
   font-size: 16px;
 }
 
-/* The verdict word in the result line. Green is the TIA-598 green fibre,
-   amber the TIA orange (both owner-approved), red the brand coral. */
-.summary .tone_good {
-  fill: #2e9e4f;
+.sheet_frame {
+  fill: var(--surface-raised);
+  stroke: var(--border);
+  stroke-width: 1.5;
 }
 
-.summary .tone_caution {
-  fill: #f28c28;
+.sheet_band {
+  fill: color-mix(in srgb, var(--text) 7%, transparent);
 }
 
-.summary .tone_bad {
-  fill: var(--brand-coral);
+.sheetLine {
+  stroke: var(--border);
+  stroke-width: 1.5;
 }
 
-.summary text {
-  font-size: 13px;
+.sheet .sheet_heading {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
   fill: var(--text-muted);
 }
 
-.summary .summaryStrong {
-  font-weight: 700;
+.horizontal .sheet .sheet_heading {
+  font-size: 13px;
+}
+
+.sheet_label {
+  fill: var(--text-muted);
+}
+
+.sheet_value {
   fill: var(--text);
 }
+
+.sheet_detail {
+  fill: var(--text);
+  font-weight: 700;
+}
+
+/* The verdict pill. Green is the TIA-598 green fibre, amber the TIA orange
+   (both owner-approved), red the brand coral. */
+.pillShape {
+  fill: var(--text-muted);
+}
+
+.sheet .pillText {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  fill: #ffffff;
+}
+
+.horizontal .sheet .pillText {
+  font-size: 15px;
+}
+
+.tone_good .pillShape {
+  fill: #2e9e4f;
+}
+
+.tone_caution .pillShape {
+  fill: #f28c28;
+}
+
+.tone_bad .pillShape {
+  fill: var(--brand-coral);
+}
+
 
 .frontLabel {
   font-family: var(--font-title);

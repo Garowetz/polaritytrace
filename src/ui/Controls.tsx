@@ -1,6 +1,7 @@
-import { METHOD_NAMES, type ChannelOutcome, type Fix, type LinkConfig, type LinkResult, type Step } from '../engine';
+import { forwardRef, useState } from 'react';
+import { type Channel, type ChannelOutcome, type Fix, type LinkConfig, type LinkResult, type Step } from '../engine';
 import styles from './Controls.module.css';
-import { VERDICT_TEXT, verdictText } from './describe';
+import { resultLine, VERDICT_TEXT, verdictText } from './describe';
 
 const SEVERITY_ORDER = { block: 0, fail: 1, warn: 2, note: 3 } as const;
 
@@ -20,75 +21,106 @@ interface VerdictProps {
   pinned: string | null;
   /** Column headings for a port map, e.g. Module A and Module B. */
   endNames: { left: string; right: string };
+  /** Where each module port lands, shown on its own tab beside the channels. */
+  portMap: Channel[];
+  /** Column headings for that tab. */
+  mapNames: { left: string; right: string };
   onPin: (channelId: string) => void;
 }
 
-export function VerdictStrip({ result, fixes, onApply, pinned, onPin, endNames }: VerdictProps) {
+/** A port map table: one row per fibre, a pill for each end. */
+function MapTable({ channels, names, pinned, onPin }: { channels: Channel[]; names: { left: string; right: string }; pinned?: string | null; onPin?: (id: string) => void }) {
+  const pill = (c: Channel, text: string) =>
+    onPin ? (
+      <button type="button" className={styles.rowButton} aria-pressed={pinned === c.id} onClick={() => onPin(c.id)}>
+        {text}
+      </button>
+    ) : (
+      <span className={styles.rowPill}>{text}</span>
+    );
+  return (
+    <table className={styles.channels}>
+      <caption className={styles.srOnly}>Where each port lands at the other end.</caption>
+      <thead>
+        <tr>
+          <th scope="col">{names.left}</th>
+          <th scope="col">{names.right}</th>
+          <th scope="col" className={styles.detailCol}>What happens</th>
+        </tr>
+      </thead>
+      <tbody>
+        {channels.map((c) => (
+          <tr key={c.id} className={`${styles.o_mapped} ${pinned === c.id ? styles.pinnedRow : ''}`}>
+            <th scope="row">{pill(c, c.ends?.left ?? c.label)}</th>
+            <td>{pill(c, c.ends?.right ?? '')}</td>
+            <td className={styles.detailCol}>{c.message}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+export function VerdictStrip({ result, fixes, onApply, pinned, onPin, endNames, portMap, mapNames }: VerdictProps) {
   const v = verdictText(result);
   const map = v.map;
-  const ok = result.channels.filter((c) => c.outcome === 'tx-to-rx').length;
+  const line = resultLine(result);
+  const [tab, setTab] = useState<'channels' | 'map'>('channels');
+  const tabs = !result.portMap && portMap.length > 0;
+  const showMap = tabs && tab === 'map';
   const issues = [...result.issues].sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]).slice(0, 4);
   return (
-    <section className={`${styles.verdict} ${styles[`v_${map ? 'MAP' : result.verdict}`]}`} aria-live="polite">
-      <div className={styles.verdictHead}>
+    <section className={styles.verdict} aria-labelledby="check-title">
+      <h2 id="check-title" className={styles.sectionTitle}>
+        {result.portMap ? 'Port map' : 'Channel check'}
+      </h2>
+      <p className={styles.sectionLead}>
+        {result.portMap
+          ? 'Nothing is plugged in at one end, so this shows where each module port lands. Tap a row to highlight it on the drawing.'
+          : 'Each channel from End A to End B, and where each module port lands. Tap a channel to highlight it on the drawing.'}
+      </p>
+      <div className={`${styles.banner} ${styles[`b_${line.verdict.tone ?? 'none'}`]}`} aria-live="polite">
         <span className={styles.badge}>
           <span aria-hidden="true">{v.icon}</span> {v.text}
         </span>
-        <span className={styles.meta}>
-          {result.method ? METHOD_NAMES[result.method] : 'No standard method'}
-          {result.channels.length > 0 && !result.portMap && ` · ${ok} of ${result.channels.length} channels deliver Tx to Rx`}
-        </span>
+        <span className={styles.meta}>{line.detail}</span>
       </div>
-      {result.channels.length > 0 && (
+      {tabs && (
+        <div className={styles.tabs} role="tablist" aria-label="Channel check views">
+          <button type="button" role="tab" aria-selected={!showMap} className={styles.tab} onClick={() => setTab('channels')}>
+            Channels
+          </button>
+          <button type="button" role="tab" aria-selected={showMap} className={styles.tab} onClick={() => setTab('map')}>
+            Port map
+          </button>
+        </div>
+      )}
+      {showMap && <MapTable channels={portMap} names={mapNames} />}
+      {!showMap && map && <MapTable channels={result.channels} names={endNames} pinned={pinned} onPin={onPin} />}
+      {!showMap && !map && result.channels.length > 0 && (
         <table className={styles.channels}>
           <caption className={styles.srOnly}>Every channel. Select a row to highlight it on the diagram.</caption>
           <thead>
             <tr>
-              {map ? (
-                <>
-                  <th scope="col">{endNames.left}</th>
-                  <th scope="col">{endNames.right}</th>
-                </>
-              ) : (
-                <>
-                  <th scope="col">Channel</th>
-                  <th scope="col">Result</th>
-                </>
-              )}
+              <th scope="col">Channel</th>
+              <th scope="col">Result</th>
               <th scope="col" className={styles.detailCol}>What happens</th>
             </tr>
           </thead>
           <tbody>
             {result.channels.map((c) => (
               <tr key={c.id} className={`${styles[`o_${c.outcome.replace(/-/g, '')}`]} ${pinned === c.id ? styles.pinnedRow : ''}`}>
-                {map && c.ends ? (
-                  <>
-                    <th scope="row">
-                      <button type="button" className={styles.rowButton} aria-pressed={pinned === c.id} onClick={() => onPin(c.id)}>
-                        {c.ends.left}
-                      </button>
-                    </th>
-                    <td>
-                      <button type="button" className={styles.rowButton} aria-pressed={pinned === c.id} onClick={() => onPin(c.id)}>
-                        {c.ends.right}
-                      </button>
-                    </td>
-                  </>
-                ) : (
-                  <>
-                    <th scope="row">
-                      <button type="button" className={styles.rowButton} aria-pressed={pinned === c.id} onClick={() => onPin(c.id)}>
-                        {c.label}
-                      </button>
-                    </th>
-                    <td>
-                      <span className={styles.outcomeIcon} aria-hidden="true">
-                        {OUTCOME[c.outcome].icon}
-                      </span>{' '}
-                      {OUTCOME[c.outcome].text}
-                    </td>
-                  </>
-                )}
+                <th scope="row">
+                  <button type="button" className={styles.rowButton} aria-pressed={pinned === c.id} onClick={() => onPin(c.id)}>
+                    {c.label}
+                  </button>
+                </th>
+                <td>
+                  <span className={styles.outcomeIcon} aria-hidden="true">
+                    {OUTCOME[c.outcome].icon}
+                  </span>{' '}
+                  {OUTCOME[c.outcome].text}
+                </td>
                 <td className={styles.detailCol}>{c.message}</td>
               </tr>
             ))}
@@ -135,18 +167,20 @@ interface StepProps {
   playing: boolean;
   onIndex: (i: number | null) => void;
   onPlay: (p: boolean) => void;
+  /** Pinned to the bottom of the screen while the step box is scrolled away. */
+  floating?: boolean;
 }
 
-export function StepControls({ steps, index, playing, onIndex, onPlay }: StepProps) {
+export const StepControls = forwardRef<HTMLElement, StepProps>(function StepControls({ steps, index, playing, onIndex, onPlay, floating }, ref) {
   const last = steps.length - 1;
   const shown = steps[index ?? last];
   const pos = index ?? last;
   return (
-    <section className={styles.stepper} aria-label="Step through the link">
+    <section ref={ref} className={`${styles.stepper} ${floating ? styles.floating : ''}`} aria-label={floating ? 'Step controls' : 'Step through the link'}>
       <div className={styles.caption} aria-live="polite">
         <span className={styles.stepCount}>{index === null ? 'Whole link' : `Step ${pos + 1} of ${steps.length}`}</span>
         <strong className={styles.stepTitle}>{shown?.title}</strong>
-        <span className={styles.stepText}>{shown?.text}</span>
+        {!floating && <span className={styles.stepText}>{shown?.text}</span>}
       </div>
       <div className={styles.buttons}>
         <button type="button" onClick={() => onIndex(Math.max(0, (index ?? 1) - 1))} disabled={index === 0} aria-label="Previous step">
@@ -158,10 +192,12 @@ export function StepControls({ steps, index, playing, onIndex, onPlay }: StepPro
         <button type="button" onClick={() => onIndex(index === null ? 0 : Math.min(last, index + 1))} disabled={index === last} aria-label="Next step">
           ›
         </button>
-        <button type="button" className={styles.all} onClick={() => onIndex(null)} disabled={index === null}>
-          Show all
-        </button>
+        {!floating && (
+          <button type="button" className={styles.all} onClick={() => onIndex(null)} disabled={index === null}>
+            Show all
+          </button>
+        )}
       </div>
     </section>
   );
-}
+});

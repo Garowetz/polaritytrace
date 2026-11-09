@@ -13,28 +13,92 @@
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
   background: var(--surface-raised);
-  border-left-width: 6px;
 }
 
-.v_PASS {
-  border-left-color: var(--brand-mint);
-}
-.v_WARN {
-  border-left-color: var(--brand-powder-blue);
-}
-.v_MAP {
-  border-left-color: var(--text-muted);
-}
-.v_FAIL,
-.v_BLOCK {
-  border-left-color: var(--brand-coral);
+.sectionTitle {
+  margin: 0;
+  font-family: var(--font-title);
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
-.verdictHead {
+.sectionLead {
+  margin: var(--space-1) 0 var(--space-3);
+  color: var(--text-muted);
+  font-size: 0.92rem;
+}
+
+/* The verdict: a coloured banner. Green is the TIA green fibre, amber the TIA
+   orange (owner-approved), red the brand coral. */
+.banner {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--tone, var(--text-muted)) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tone, var(--text-muted)) 45%, transparent);
+}
+
+.b_good {
+  --tone: #2e9e4f;
+}
+.b_caution {
+  --tone: #f28c28;
+}
+.b_bad {
+  --tone: var(--brand-coral);
+}
+
+.banner .badge {
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--tone, var(--text-muted));
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.tabs {
+  display: inline-flex;
+  gap: 4px;
+  margin-top: var(--space-4);
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.tab {
+  min-height: 36px;
+  padding: 0 var(--space-4);
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.tab[aria-selected='true'] {
+  background: var(--text);
+  color: var(--bg);
+  font-weight: 700;
+}
+
+.rowPill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .badge {
@@ -236,6 +300,30 @@
 }
 
 /* Stepper */
+.floating {
+  position: fixed;
+  z-index: 10;
+  left: 50%;
+  bottom: max(var(--space-3), env(safe-area-inset-bottom));
+  width: min(560px, calc(100vw - 2 * var(--space-4)));
+  margin: 0;
+  transform: translateX(-50%);
+  box-shadow: var(--shadow);
+  flex-wrap: nowrap;
+}
+
+.floating .caption {
+  min-height: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.floating .stepTitle {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 .stepper {
   display: flex;
   flex-wrap: wrap;

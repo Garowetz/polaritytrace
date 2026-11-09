@@ -37,10 +37,12 @@ export async function savePicture(svg: SVGSVGElement, background: string, footer
     target.removeAttribute('class');
   });
   clone.querySelectorAll('[data-export="skip"]').forEach((el) => el.remove());
+  // Parts kept off the page but always in the picture, such as the parts table.
+  clone.querySelectorAll<SVGElement>('[data-export="show"]').forEach((el) => el.style.setProperty('display', 'inline'));
 
-  // Room at the bottom for the link, and a solid background.
+  // The whole drawing, room at the bottom for the link, and a solid background.
   const vb = svg.viewBox.baseVal;
-  const h = vb.height + 26;
+  const h = Number(svg.dataset.fullHeight ?? vb.height) + 26;
   clone.setAttribute('viewBox', `0 0 ${vb.width} ${h}`);
   clone.setAttribute('width', `${vb.width}`);
   clone.setAttribute('height', `${h}`);

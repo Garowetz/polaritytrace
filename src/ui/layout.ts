@@ -1,7 +1,7 @@
 import { fibreColour } from '../data/colours';
 import { frontNumber, resolveLink, trace, type Catalog, type ChannelOutcome, type FibreTrace, type Hop, type LinkConfig, type LinkResult, type PolarityType, type Side } from '../engine';
 import type { ResolvedEnd } from '../engine/resolve';
-import { cassetteShort, opticShort, summaryLines, trunkShort, wrap, type Tone } from './describe';
+import { cassetteShort, cordShort, opticShort, partsColumns, resultLine, trunkShort, wrap, type PartsColumn, type Tone } from './describe';
 
 // Pure geometry: turns engine output into points and paths. No React here, and
 // no polarity decisions: every fibre path is exactly the engine's hop list.
@@ -86,8 +86,18 @@ export interface LinkGeom {
   boxes: BoxGeom[];
   connectors: ConnectorGeom[];
   fibres: FibreGeom[];
-  /** Parts list and result under the drawing, one entry per line. */
-  summary: { x: number; y: number; text: string; anchor: 'start' | 'middle' | 'end'; strong: boolean; highlight?: { text: string; tone: Tone } }[];
+  /** The parts table and result under the drawing. */
+  sheet: SheetGeom;
+}
+
+/** The parts table under the drawing, as simple shapes for the canvas to draw. */
+export interface SheetGeom {
+  /** Height of the drawing above the table, for showing the drawing alone. */
+  body: number;
+  rects: { x: number; y: number; w: number; h: number; kind: 'frame' | 'band' }[];
+  lines: { x1: number; y1: number; x2: number; y2: number }[];
+  texts: { x: number; y: number; text: string; anchor: 'start' | 'middle'; kind: 'heading' | 'label' | 'value' | 'detail' }[];
+  pill?: { x: number; y: number; w: number; h: number; text: string; tone: Tone | 'none' };
 }
 
 const PITCH = 22;
@@ -115,8 +125,9 @@ const FAN = 24;
 const GAP = 8;
 // How far the cable box runs past its end positions.
 const TRUNK_OVERHANG = 6;
-// Room beside the vertical drawing for the key notes.
-const NOTE_ROOM = 112;
+// Room each side of the vertical drawing for the key notes: the cable note
+// on the left, the module note on the right, so the drawing stays centred.
+const NOTE_SIDE = 72;
 
 type Key = 'up' | 'down';
 /** Which way the key points on each side of a cassette's rear adapter. */
@@ -226,13 +237,13 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
           d0: TRUNK_OVERHANG + GAP,
           d1: dFront + 10,
           label: end.def.label,
-          sub: cassetteShort(end.def),
+          sub: cassetteShort(end.def, link.fibre),
           underReview: !end.def.verified,
         },
       );
       if (!end.bare) {
         bx.push(
-          { kind: 'cord', d0: dFront + 10 + GAP, d1: dEq - 10, label: cord.label, underReview: !cord.verified },
+          { kind: 'cord', d0: dFront + 10 + GAP, d1: dEq - 10, label: cord.label, sub: cordShort(cord), underReview: !cord.verified },
           {
             kind: 'equipment',
             d0: dEq - 10,
@@ -289,7 +300,7 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
   const extent = Math.max(...raw.map(span));
   const tightHalf = Math.max(...raw.filter((s) => pitchOf(s) < PITCH).map(span)) / 2;
   const map = (along: number, across: number): Point =>
-    orientation === 'horizontal' ? { x: along, y: TOP + across } : { x: GUTTER + across, y: along - ALONG.margin + 70 };
+    orientation === 'horizontal' ? { x: along, y: TOP + across } : { x: GUTTER + NOTE_SIDE + across, y: along - ALONG.margin + 70 };
 
   // Where each slot sits as (along, across), for the cord drawing.
   const at = new Map<string, { along: number; across: number }>();
@@ -328,7 +339,7 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
     const order = Math.max(0, labelled.indexOf(b));
     // Vertical: end boxes carry their label at the outer edge, clear of the
     // Tx/Rx and port labels; the rest sit mid-box on an opaque pill.
-    const outer = b.a1 - Math.sign(b.a1 - b.a0) * 24;
+    const outer = b.a1 - Math.sign(b.a1 - b.a0) * (b.kind === 'equipment' ? 14 : 24);
     const labelAt =
       orientation === 'horizontal'
         ? { x: mid, y: TOP - PAD.cassette - 30 - (subLines(b.sub) - 1) * SUB_LINE - (order % 2) * 64 }
@@ -342,7 +353,8 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
       w: Math.abs(p1.x - p0.x),
       h: Math.abs(p1.y - p0.y),
       label: b.label,
-      sub: b.sub,
+      // Phones: the equipment's Tx | Rx is already written on each port.
+      sub: orientation === 'vertical' && b.kind === 'equipment' ? undefined : b.sub,
       labelAt,
       underReview: b.underReview,
       notes: b.keys ? keyNotes(b.a1, b.a0, b.keys, pad) : undefined,
@@ -358,9 +370,15 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
         const y0 = TOP + extent + pad;
         return { x: edge, y: y0 + 22, text, anchor: (away < 0 ? 'end' : 'start') as 'start' | 'end', tick: [{ x: edge, y: y0 }, { x: edge, y: y0 + 12 }] };
       }
-      const x0 = GUTTER + extent + pad;
+      // Phones: two short lines, module note to the right, cable note to the left.
       const p = map(edge, 0);
-      return { x: x0 + 18, y: p.y, text, anchor: 'start' as const, tick: [{ x: x0, y: p.y }, { x: x0 + 12, y: p.y }] };
+      const two = text.replace(' key', '\nkey');
+      if (away === towardModule) {
+        const x0 = GUTTER + NOTE_SIDE + extent + pad;
+        return { x: x0 + 16, y: p.y, text: two, anchor: 'start' as const, tick: [{ x: x0, y: p.y }, { x: x0 + 10, y: p.y }] };
+      }
+      const x0 = GUTTER + NOTE_SIDE - pad;
+      return { x: x0 - 16, y: p.y, text: two, anchor: 'end' as const, tick: [{ x: x0, y: p.y }, { x: x0 - 10, y: p.y }] };
     };
     return [
       note(moduleEdge, `Module key ${keys.module}`, towardModule),
@@ -480,44 +498,69 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
     }
   }
 
-  const width = orientation === 'horizontal' ? total : GUTTER * 2 + extent + NOTE_ROOM;
+  const width = orientation === 'horizontal' ? total : 2 * (GUTTER + NOTE_SIDE) + extent;
   const drawn = orientation === 'horizontal' ? TOP + extent + 56 : total - 2 * ALONG.margin + 140;
 
-  // 5. The parts list and result, so a copied picture explains itself:
-  //    End A on the left, End B on the right, the cable and the result
-  //    centred. Side by side on a wide drawing; stacked and left-aligned on a phone.
+  // 5. The parts table: End A, the MPO cable and End B, with the result in a
+  //    row underneath, ruled like the title block of a drawing. Side by side on
+  //    a wide drawing, stacked on a phone. It is in every saved picture.
   const wide = orientation === 'horizontal';
-  // Matches the summary font: 16px on a wide drawing, 13px on a phone.
-  const LINE = wide ? 21 : 18;
-  const CHAR = wide ? 8.6 : 7;
-  const sum = summaryLines(link, result);
-  const summary: LinkGeom['summary'] = [];
-  const xOf = { start: GUTTER, middle: width / 2, end: width - GUTTER } as const;
-  const block = (lines: string[], anchor: keyof typeof xOf, y0: number, chars: number, first = true) => {
-    let y = y0;
-    lines.forEach((text, i) => {
-      for (const line of wrap(text, chars)) {
-        summary.push({ x: xOf[anchor], y, text: line, anchor, strong: first && i === 0 });
+  // Matches the table font: 16px on a wide drawing, 13px on a phone.
+  const LINE = wide ? 22 : 18;
+  const CHAR = wide ? 8.4 : 6.9;
+  const HEAD = wide ? 34 : 28;
+  const PADX = wide ? 16 : 10;
+  const LABEL_W = wide ? 120 : 92;
+  const sheet: SheetGeom = { body: drawn, rects: [], lines: [], texts: [] };
+  const x0 = GUTTER;
+  const w = width - 2 * GUTTER;
+  const y0 = drawn + 16;
+  const columns = partsColumns(link);
+  // One column of label / value rows; returns the y below its last line.
+  const rows = (col: PartsColumn, x: number, cw: number, y: number) => {
+    const chars = Math.max(10, Math.floor((cw - LABEL_W - 2 * PADX) / CHAR));
+    for (const r of col.rows) {
+      sheet.texts.push({ x: x + PADX, y, text: r.label, anchor: 'start', kind: 'label' });
+      for (const line of wrap(r.value, chars)) {
+        sheet.texts.push({ x: x + PADX + LABEL_W, y, text: line, anchor: 'start', kind: 'value' });
         y += LINE;
       }
-    });
+    }
     return y;
   };
-  let y = drawn + 24;
-  const chars = wide ? Math.floor(width / 3 / CHAR) - 4 : Math.floor((width - 2 * GUTTER) / CHAR);
+  const heading = (text: string, x: number, y: number, cw: number) => {
+    sheet.rects.push({ x, y, w: cw, h: HEAD, kind: 'band' });
+    sheet.texts.push({ x: x + PADX, y: y + HEAD / 2, text: text.toUpperCase(), anchor: 'start', kind: 'heading' });
+  };
+  let y: number;
   if (wide) {
-    y = Math.max(block(sum.left, 'start', y, chars), block(sum.middle, 'middle', y, chars), block(sum.right, 'end', y, chars));
+    const cw = w / 3;
+    columns.forEach((col, i) => heading(col.heading, x0 + i * cw, y0, cw));
+    const bottoms = columns.map((col, i) => rows(col, x0 + i * cw, cw, y0 + HEAD + LINE));
+    y = Math.max(...bottoms) + 4;
+    for (let i = 1; i < 3; i++) sheet.lines.push({ x1: x0 + i * cw, y1: y0, x2: x0 + i * cw, y2: y });
   } else {
-    y = block(sum.left, 'start', y, chars) + 8;
-    y = block(sum.middle, 'start', y, chars) + 8;
-    y = block(sum.right, 'start', y, chars);
+    y = y0;
+    columns.forEach((col, i) => {
+      if (i) sheet.lines.push({ x1: x0, y1: y, x2: x0 + w, y2: y });
+      heading(col.heading, x0, y, w);
+      y = rows(col, x0, w, y + HEAD + LINE - 4) + 2;
+    });
   }
-  const first = summary.length;
-  y = block([sum.result], wide ? 'middle' : 'start', y + 10, wide ? 200 : chars) + 4;
-  // The verdict word is coloured; it always lands on the result's first line.
-  const tone = sum.verdict.tone;
-  if (tone && summary[first]?.text.includes(sum.verdict.text)) summary[first].highlight = { text: sum.verdict.text, tone };
-  return { orientation, width, height: y + 6, stations, boxes, connectors, fibres, summary };
+  // The result row: the verdict in a coloured pill, then the method and count.
+  sheet.lines.push({ x1: x0, y1: y, x2: x0 + w, y2: y });
+  const res = resultLine(result);
+  const word = res.verdict.text.toUpperCase();
+  const pillH = wide ? 30 : 24;
+  const pillW = word.length * CHAR * 1.05 + (wide ? 28 : 20);
+  const rowTop = y + (wide ? 12 : 10);
+  sheet.pill = { x: x0 + PADX, y: rowTop, w: pillW, h: pillH, text: word, tone: res.verdict.tone ?? 'none' };
+  const detailX = x0 + PADX + pillW + 12;
+  const detailLines = wrap(res.detail, Math.floor((x0 + w - PADX - detailX) / CHAR));
+  detailLines.forEach((line, i) => sheet.texts.push({ x: detailX, y: rowTop + pillH / 2 + i * LINE, text: line, anchor: 'start', kind: 'detail' }));
+  y = Math.max(rowTop + pillH, rowTop + pillH / 2 + (detailLines.length - 1) * LINE + LINE / 2) + (wide ? 12 : 10);
+  sheet.rects.unshift({ x: x0, y: y0, w, h: y - y0, kind: 'frame' });
+  return { orientation, width, height: y + 8, stations, boxes, connectors, fibres, sheet };
 }
 
 /** Smooth path through points: each hop is an S-curve along the link. */

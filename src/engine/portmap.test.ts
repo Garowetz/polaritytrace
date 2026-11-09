@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { catalog } from '../data/catalog';
+import { modulePortMap } from './evaluate';
 import { suggestFixes } from './fixes';
 import { cassetteEnd, link, opticEnd, run, SM } from './testkit';
 import { NO_EQUIPMENT } from './types';
@@ -54,5 +55,19 @@ describe('port map when nothing is plugged in', () => {
   it('mechanical blocks still apply (MPO-16 module on an MPO-12 trunk)', () => {
     const r = run(link(bare('cas-a-12'), trunkA, bare('cas-u1-16')));
     expect(r.verdict).toBe('BLOCK');
+  });
+});
+
+describe('the module port map alongside a full link', () => {
+  it('maps module to module even with cords and equipment plugged in', () => {
+    const full = link(cassetteEnd('cas-a-12', 'lc-ab'), trunkB, cassetteEnd('cas-a-12', 'lc-ab'));
+    const map = modulePortMap(full, catalog);
+    expect(map).toHaveLength(12);
+    expect(map[0].ends).toEqual({ left: 'Port 1', right: 'Port 12' });
+  });
+
+  it('is empty when both ends are MPO optics', () => {
+    const r = link(opticEnd('qsfp28-100g-sr4'), { trunk: 'trunk-b-12', fibre: 'MMF', polish: 'UPC' }, opticEnd('qsfp28-100g-sr4'));
+    expect(modulePortMap(r, catalog)).toEqual([]);
   });
 });

@@ -39,7 +39,8 @@ export function frontCount(def: CassetteDef): number {
 export const mpoSize = (positions: number, lit: number) => `MPO-${positions} · ${lit}F`;
 
 /** The short facts on the drawing; the full specs go in the parts list. */
-export const cassetteShort = (def: CassetteDef) => `${frontCount(def)} × ${def.frontConnector}`;
+export const cassetteShort = (def: CassetteDef, fibre: Fibre) => `${def.litPositions.length}F · ${fibreWord(fibre)}`;
+export const cordShort = (cord: DuplexCordDef) => `${cord.ends.cassette} to ${cord.ends.equipment}`;
 export const trunkShort = (link: ResolvedLink) => mpoSize(link.trunk.positions, link.trunk.litPositions.length);
 export function opticShort(def: OpticDef): string {
   return def.mpo ? mpoSize(def.mpo.positions, def.mpo.lanes.length * 2) : def.connector;
@@ -70,19 +71,56 @@ export function opticSpec(def: OpticDef): string {
   return def.fibre ? `${conn} · ${fibreWord(def.fibre)}` : conn;
 }
 
-/** One end, one fact per line. */
-function endLines(name: string, end: ResolvedEnd): string[] {
-  if (end.kind === 'mpoOptic') return [`${name}: ${end.def.label}`, opticSpec(end.def)];
-  const lines = [`${name}: ${end.def.label}${end.mount === 'inverted' ? ', mounted upside down' : ''}`, ...cassetteSpec(end)];
+/** One fact in the parts list: a short name and its value. */
+export interface PartRow {
+  label: string;
+  value: string;
+}
+
+export interface PartsColumn {
+  heading: string;
+  rows: PartRow[];
+}
+
+/** One end, one fact per row. */
+function endRows(end: ResolvedEnd): PartRow[] {
+  if (end.kind === 'mpoOptic') return [{ label: 'Part', value: end.def.label }, { label: 'Spec', value: opticSpec(end.def) }];
+  const [front, rear] = cassetteSpec(end);
+  const rows: PartRow[] = [
+    { label: 'Part', value: `${end.def.label}${end.mount === 'inverted' ? ', mounted upside down' : ''}` },
+    { label: 'Front', value: front.replace(/^Front: /, '') },
+    { label: 'Rear', value: rear },
+  ];
   if (end.bare) {
-    lines.push('Plugged into: nothing');
+    rows.push({ label: 'Plugged into', value: 'nothing' });
   } else {
     const ports = [...end.patched];
     const cords = [...new Set(ports.map((p) => end.cordFor(p).label))];
-    lines.push(`Patch cords: ${cords.join(' and ')}`, cordSpec(end.cordFor(ports[0] ?? 1), end));
-    lines.push(`Plugged into: ${end.equipment.generic ? 'equipment ports' : `${end.equipment.label} optics`}`);
+    rows.push(
+      { label: 'Patch cords', value: cords.join(' and ') },
+      { label: 'Cord ends', value: cordSpec(end.cordFor(ports[0] ?? 1), end).replace(/^Ends: /, '') },
+      { label: 'Plugged into', value: end.equipment.generic ? 'equipment ports' : `${end.equipment.label} optics` },
+    );
   }
-  return lines;
+  return rows;
+}
+
+/** The parts list as three columns: End A, the MPO cable and End B. */
+export function partsColumns(link: ResolvedLink): PartsColumn[] {
+  return [
+    { heading: 'End A', rows: endRows(link.left) },
+    { heading: 'MPO cable', rows: [{ label: 'Part', value: link.trunk.label }, { label: 'Spec', value: trunkSpec(link) }] },
+    { heading: 'End B', rows: endRows(link.right) },
+  ];
+}
+
+/** The result in words, with its verdict word and colour. */
+export function resultLine(result: LinkResult): { text: string; verdict: { text: string; tone?: Tone }; detail: string } {
+  const v = verdictText(result);
+  const method = result.method ? METHOD_NAMES[result.method] : 'No standard method';
+  const ok = result.channels.filter((c) => c.outcome === 'tx-to-rx').length;
+  const count = !v.map && result.channels.length ? ` · ${ok} of ${result.channels.length} channels deliver Tx to Rx` : '';
+  return { text: `Result: ${v.text} · ${method}${count}`, verdict: { text: v.text, tone: v.map ? undefined : TONE[result.verdict] }, detail: `${method}${count}` };
 }
 
 export interface Summary {
@@ -94,19 +132,11 @@ export interface Summary {
   verdict: { text: string; tone?: Tone };
 }
 
-/** The parts list and result written under the drawing: End A, the cable and End B, then the result. */
+/** The parts list and result as plain lines, for text under the drawing. */
 export function summaryLines(link: ResolvedLink, result: LinkResult): Summary {
-  const v = verdictText(result);
-  const method = result.method ? METHOD_NAMES[result.method] : 'No standard method';
-  const ok = result.channels.filter((c) => c.outcome === 'tx-to-rx').length;
-  const count = !v.map && result.channels.length ? ` · ${ok} of ${result.channels.length} channels deliver Tx to Rx` : '';
-  return {
-    left: endLines('End A', link.left),
-    middle: [`MPO cable: ${link.trunk.label}`, trunkSpec(link)],
-    right: endLines('End B', link.right),
-    result: `Result: ${v.text} · ${method}${count}`,
-    verdict: { text: v.text, tone: v.map ? undefined : TONE[result.verdict] },
-  };
+  const [left, middle, right] = partsColumns(link).map((col) => col.rows.map((r, i) => (i === 0 ? `${col.heading}: ${r.value}` : `${r.label}: ${r.value}`)));
+  const r = resultLine(result);
+  return { left, middle, right, result: r.text, verdict: r.verdict };
 }
 
 /** Breaks text into lines of at most `max` characters, at spaces. */

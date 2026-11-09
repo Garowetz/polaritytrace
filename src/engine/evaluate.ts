@@ -3,7 +3,7 @@ import { checkInterop, scopeIssues } from './interop';
 import { blockingMechanical, mechanicalIssues } from './mechanical';
 import { detectMethod, methodIssues } from './methods';
 import { resolveLink, type ResolvedCassetteEnd, type ResolvedLink } from './resolve';
-import type { Catalog, Channel, Described, Issue, LinkConfig, LinkResult, Mode, Sourced, Verdict } from './types';
+import { NO_EQUIPMENT, type Catalog, type Channel, type Described, type Issue, type LinkConfig, type LinkResult, type Mode, type Sourced, type Verdict } from './types';
 
 function modeOf(link: ResolvedLink): Mode {
   const l = link.left.kind === 'cassette';
@@ -95,4 +95,15 @@ export function evaluateLink(config: LinkConfig, catalog: Catalog): LinkResult {
     issues.push({ severity: 'note', code: 'dark-ports', message: `Cassette ports ${ports} carry no lane and stay dark.` });
   }
   return { verdict: aggregate(channels, issues), mode, method, channels, issues, portMap, darkPorts: dark, underReview: review };
+}
+
+/**
+ * Where each module port lands at the far end, whatever is plugged in: the
+ * same port map shown when nothing is plugged in. Empty when both ends are
+ * MPO optics or the link cannot be built.
+ */
+export function modulePortMap(config: LinkConfig, catalog: Catalog): Channel[] {
+  const bare = (e: LinkConfig['left']): LinkConfig['left'] => (e.kind === 'cassette' ? { ...e, equipment: NO_EQUIPMENT } : e);
+  const result = evaluateLink({ ...config, left: bare(config.left), right: bare(config.right) }, catalog);
+  return result.portMap ? result.channels : [];
 }
