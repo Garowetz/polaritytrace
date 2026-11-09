@@ -244,8 +244,18 @@
 
 .posLabel {
   font-size: 10px;
-  fill: var(--text-muted);
+  fill: var(--text);
+  /* A halo so numbers read over the fibres. */
+  paint-order: stroke;
+  stroke: var(--surface-raised);
+  stroke-width: 3px;
+  stroke-linejoin: round;
   font-variant-numeric: tabular-nums;
+}
+
+.posTight {
+  /* Phones: the cable positions sit side by side at the tight pitch. */
+  font-size: 8px;
 }
 
 .roleLabel {
@@ -269,6 +279,10 @@
   font-size: 11px;
   font-weight: 700;
   fill: var(--text);
+  paint-order: stroke;
+  stroke: var(--surface-raised);
+  stroke-width: 3px;
+  stroke-linejoin: round;
   font-variant-numeric: tabular-nums;
 }
 

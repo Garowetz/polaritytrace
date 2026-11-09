@@ -24,6 +24,7 @@ function encodeEnd(end: EndConfig): string {
   t.push(end.rearGender, end.fibre, end.polish);
   if (end.equipment !== GENERIC_PORT) t.push(`eq:${end.equipment}`);
   if (end.fec) t.push(`fec:${end.fec}`);
+  if (end.frontPolish) t.push(`fp:${end.frontPolish}`);
   if (end.patchedPorts) t.push(`ports:${end.patchedPorts.join('.')}`);
   for (const [port, cord] of Object.entries(end.cordOverrides ?? {})) t.push(`p${port}:${cord}`);
   return t.filter(Boolean).join('~');
@@ -53,6 +54,7 @@ function decodeEnd(s: string, catalog: Catalog): EndConfig | null {
     else if (has(POLISHES, o)) end.polish = o;
     else if (k === 'eq' && v) end.equipment = v;
     else if (k === 'fec' && has(FECS, v)) end.fec = v;
+    else if (k === 'fp' && has(POLISHES, v)) end.frontPolish = v;
     else if (k === 'ports' && /^\d+(\.\d+)*$/.test(v)) end.patchedPorts = v.split('.').map(Number);
     else if (/^p\d+$/.test(k) && v) overrides[Number(k.slice(1))] = v;
     else return null;

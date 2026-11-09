@@ -58,6 +58,12 @@ export function Builder({ catalog, config, onChange, presets, activePreset, pick
         <PartButton field="Part" {...nameOf({ what: 'part', side })} onClick={() => onPicker({ what: 'part', side })} />
         {end.kind === 'cassette' && (
           <>
+            <Segmented<Polish>
+              label="Front polish"
+              value={end.frontPolish ?? 'UPC'}
+              options={(['UPC', 'APC'] as const).map((p) => ({ value: p, label: p === 'UPC' && (end.fibre ?? config.cable.fibre) === 'MMF' ? 'PC/UPC' : p }))}
+              onChange={(p) => onChange({ ...config, [side]: { ...end, frontPolish: p === 'UPC' ? undefined : p } })}
+            />
             {end.equipment !== NO_EQUIPMENT && (
               <PartButton field="Patch cords" {...nameOf({ what: 'cord', side })} onClick={() => onPicker({ what: 'cord', side })} />
             )}

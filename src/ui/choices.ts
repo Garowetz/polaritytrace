@@ -57,7 +57,8 @@ export function applyChoice(c: Catalog, config: LinkConfig, t: PickerTarget, id:
     if (c.optics.some((o) => o.id === id)) return withEnd(c, config, t.side, opticEnd(id));
     const prev: Partial<CassetteEnd> = end.kind === 'cassette' ? end : {};
     const equipment = prev.equipment ?? GENERIC_PORT;
-    const next = cassetteEnd(id, fitCord(c, prev.cord, id, equipment), { equipment, ...(prev.mount ? { mount: prev.mount } : {}) });
+    const keep = { ...(prev.mount ? { mount: prev.mount } : {}), ...(prev.frontPolish ? { frontPolish: prev.frontPolish } : {}) };
+    const next = cassetteEnd(id, fitCord(c, prev.cord, id, equipment), { equipment, ...keep });
     return withEnd(c, config, t.side, next);
   }
   if (end.kind !== 'cassette') return config;

@@ -19,6 +19,7 @@ describe('port map when nothing is plugged in', () => {
     expect(r.channels).toHaveLength(12);
     expect(r.channels.every((c) => c.outcome === 'mapped')).toBe(true);
     expect(r.channels[0].message).toBe('End A port 1 arrives at End B port 1.');
+    expect(r.channels[0].ends).toEqual({ left: 'Port 1', right: 'Port 1' });
     expect(r.channels[11].message).toBe('End A port 12 arrives at End B port 12.');
     expect(r.issues.map((i) => i.code)).toContain('port-map');
     expect(suggestFixes(link(bare('cas-a-12'), trunkA, bare('cas-a-12')), catalog)).toEqual([]);
@@ -27,6 +28,7 @@ describe('port map when nothing is plugged in', () => {
   it('a Type B trunk between Type A modules reverses the ports', () => {
     const r = run(link(bare('cas-a-12'), trunkB, bare('cas-a-12')));
     expect(r.channels[0].message).toBe('End A port 1 arrives at End B port 12.');
+    expect(r.channels[0].ends).toEqual({ left: 'Port 1', right: 'Port 12' });
   });
 
   it('one end bare: the other end shows where its Tx lands and where its Rx comes from', () => {
@@ -35,6 +37,7 @@ describe('port map when nothing is plugged in', () => {
     expect(r.channels).toHaveLength(6);
     // A-to-B cord: equipment Tx (B) enters front position A, which is fibre 1.
     expect(r.channels[0].message).toBe('Port 1 Tx lands on End B port 1. Its Rx is fed from End B port 2.');
+    expect(r.channels[0].ends).toEqual({ left: 'Port 1', right: 'Ports 1 & 2' });
     expect(r.channels[0].back.arrival).toMatchObject({ kind: 'equipment', side: 'left', port: 1, role: 'rx' });
     expect(r.issues.find((i) => i.code === 'port-map')?.message).toMatch(/at End B/);
   });

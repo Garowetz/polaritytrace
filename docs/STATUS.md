@@ -51,6 +51,7 @@ What the site does today:
 
 ## Under discussion (owner feedback, 2026-10-28)
 
+- **Third round (2026-11-09):** module port numbers sit inside the module; each fibre stops at the module front and starts again past the cord connector (the moving light still runs through); cable position numbers sit just above the line with a halo; front polish is tracked per end (default UPC, link token `fp:APC`); labels follow the Polarity Maps style (`Front: 6 × LC/UPC`, `MPO: MPO/APC-12F-Down, male`, `Ends: LC/UPC to LC/UPC`); the port map table shows a pill for each end (Module A | Module B).
 - **Second visual round done (2026-11-09):** duplex patch cords drawn as zip cords with a connector body on each fibre and a gap where they plug in (an A-to-A cord crosses where it splits at the equipment); fibres pack tighter into a smaller rear MPO; the cable is a jacket with an MPO plug at each end, narrower than the modules (no jacket colour, owner's choice); polish buttons are APC | UPC on singlemode and PC/UPC | APC on multimode (the old "Usual" option is gone); an (i) tip explains "Mounted upside down". Key bumps on the plugs wait until key up/down is settled.
 
 - **Visual update done (2026-10-28):** module outline holds its rear MPO; rear MPO and cable a little narrower than the module; key notes below each adapter ("Module key up" / "Cable key down", flipped when a cassette is mounted upside down); gaps where cords and the cable meet a module; card titles (End A / MPO cable / End B) are dark pill labels inside the cards. Unused MPO positions were already hollow dots.

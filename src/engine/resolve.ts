@@ -35,6 +35,7 @@ export interface ResolvedCassetteEnd {
   frontOrientation: FrontOrientation;
   rearGender: Gender;
   polish: Polish;
+  frontPolish: Polish;
   fibre: Fibre;
   cordFor: (port: number) => DuplexCordDef;
   equipment: OpticDef;
@@ -94,6 +95,7 @@ function resolveEnd(end: EndConfig, side: Side, cable: { fibre: Fibre; polish: P
     frontOrientation: end.frontOrientation ?? 'A-B',
     rearGender: end.rearGender ?? 'M',
     polish: end.polish ?? cable.polish,
+    frontPolish: end.frontPolish ?? 'UPC',
     fibre: end.fibre ?? cable.fibre,
     cordFor: (port) => overrides.get(port) ?? cord,
     // A bare end keeps the generic port so checks that read it stay simple.

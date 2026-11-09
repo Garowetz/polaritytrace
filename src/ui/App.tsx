@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { catalog } from '../data/catalog';
 import { DEFAULT_PRESET, presets } from '../data/presets';
-import { evaluateLink, suggestFixes, UnknownComponentError, walkSteps, type LinkConfig } from '../engine';
+import { evaluateLink, NO_EQUIPMENT, suggestFixes, UnknownComponentError, walkSteps, type LinkConfig } from '../engine';
 import styles from './App.module.css';
 import { Canvas, type Focus } from './Canvas';
 import { Builder, pickerForBox, presetFor } from './Builder';
@@ -57,6 +57,11 @@ export function App() {
   const fixes = useMemo(() => (result.verdict === 'PASS' ? [] : suggestFixes(config, catalog)), [config, result]);
   const geom = useMemo(() => layoutLink(config, result, catalog, vertical ? 'vertical' : 'horizontal'), [config, result, vertical]);
   const stageRef = useRef<HTMLElement>(null);
+  const bare = (s: 'left' | 'right') => {
+    const e = config[s];
+    return e.kind === 'cassette' && e.equipment === NO_EQUIPMENT;
+  };
+  const endNames = { left: bare('left') ? 'Module A' : 'End A', right: bare('right') ? 'Module B' : 'End B' };
   const save = () => {
     const stage = stageRef.current;
     const svg = stage?.querySelector('svg');
@@ -176,6 +181,7 @@ export function App() {
           fixes={fixes}
           onApply={change}
           pinned={pinned?.kind === 'channel' ? pinned.id : null}
+          endNames={endNames}
           onPin={(id) => setPinned((cur) => (cur?.kind === 'channel' && cur.id === id ? null : { kind: 'channel', id }))}
         />
       </main>

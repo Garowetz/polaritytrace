@@ -11,6 +11,7 @@ const PROPS = [
   'stroke-dasharray',
   'stroke-linecap',
   'stroke-linejoin',
+  'paint-order',
   'opacity',
   'font-family',
   'font-size',

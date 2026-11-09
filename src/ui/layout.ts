@@ -1,7 +1,7 @@
 import { fibreColour } from '../data/colours';
 import { frontNumber, resolveLink, trace, type Catalog, type ChannelOutcome, type FibreTrace, type Hop, type LinkConfig, type LinkResult, type PolarityType, type Side } from '../engine';
 import type { ResolvedEnd } from '../engine/resolve';
-import { cassetteSpec, cordSpec, fibreWord, summaryLines, trunkSpec, wrap } from './describe';
+import { cassetteSpec, cordSpec, opticSpec, summaryLines, trunkSpec, wrap } from './describe';
 
 // Pure geometry: turns engine output into points and paths. No React here, and
 // no polarity decisions: every fibre path is exactly the engine's hop list.
@@ -43,6 +43,7 @@ export interface BoxGeom {
   w: number;
   h: number;
   label: string;
+  /** Lines under the label, one per line break. */
   sub?: string;
   labelAt: Point;
   underReview: boolean;
@@ -57,10 +58,14 @@ export interface FibreGeom {
   direction: 'forward' | 'back' | 'unlit';
   colour: string;
   colourName: string;
-  /** Full path in light direction. */
+  /** Full path in light direction, as drawn: the glass stops at the module
+   *  front and starts again past the patch-cord connector. */
   d: string;
-  /** prefixes[i] = path through hops 0..i, for the step control. */
+  /** prefixes[i] = drawn path through hops 0..i, for the step control. */
   prefixes: string[];
+  /** The same paths without the breaks, for the moving light. */
+  motion: string;
+  motionPrefixes: string[];
   points: Point[];
   slotIds: string[];
   outcome: ChannelOutcome;
@@ -94,8 +99,10 @@ const PITCH = 22;
 // read as one MPO, but not so close that the moving light dots touch.
 const TIGHT = 0.62;
 const ALONG = { margin: 120, cord: 230, cassette: 180, adapter: 100, trunk: 320 };
-const TOP = 104; // room for component labels above (horizontal)
+const TOP = 130; // room for component labels above (horizontal)
 const GUTTER = 24;
+const SUB_LINE = 14;
+const subLines = (sub?: string) => (sub ? sub.split('\n').length : 0);
 // How far each kind of box reaches past the outer fibres. The rear MPO and the
 // cable are a little narrower than the module, so they read as smaller parts.
 const PAD: Record<BoxKind, number> = { equipment: 18, optic: 18, cord: 18, cassette: 24, adapter: 10, trunk: 7, plug: 12 };
@@ -202,7 +209,8 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
       const dEq = dFront + ALONG.cord;
       st.push(
         { kind: 'internal', dist: dInt, slots: positionSlots(end.def.positions, end.def.litPositions), labelOut: false },
-        { kind: 'front', dist: dFront, slots: duplexSlots(ports, false), labelOut: true },
+        // Port numbers sit inside the module, clear of the cord connectors.
+        { kind: 'front', dist: dFront, slots: duplexSlots(ports, false), labelOut: false },
       );
       // Nothing plugged in: just the module.
       if (!end.bare) st.push({ kind: 'equipment', dist: dEq, slots: duplexSlots(patched, true), labelOut: true });
@@ -223,13 +231,13 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
           d0: TRUNK_OVERHANG + GAP,
           d1: dFront + 10,
           label: end.def.label,
-          sub: cassetteSpec(end),
+          sub: cassetteSpec(end).join('\n'),
           underReview: !end.def.verified,
         },
       );
       if (!end.bare) {
         bx.push(
-          { kind: 'cord', d0: dFront + 10 + GAP, d1: dEq - 10, label: cord.label, sub: cordSpec(cord), underReview: !cord.verified },
+          { kind: 'cord', d0: dFront + 10 + GAP, d1: dEq - 10, label: cord.label, sub: cordSpec(cord, end), underReview: !cord.verified },
           {
             kind: 'equipment',
             d0: dEq - 10,
@@ -245,8 +253,7 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
       const all = Array.from({ length: n }, (_, i) => i + 1);
       const dOpt = ALONG.adapter + 20;
       st.push({ kind: 'optic', dist: dOpt, slots: positionSlots(n, all, (p) => opticRole(end, p)), labelOut: true });
-      const sub = [end.def.connector, end.def.fibre && fibreWord(end.def.fibre), end.def.polish].filter(Boolean).join(' · ');
-      bx.push({ kind: 'optic', d0: dOpt - 10, d1: dOpt + 86, label: end.def.label, sub, underReview: !end.def.verified });
+      bx.push({ kind: 'optic', d0: dOpt - 10, d1: dOpt + 86, label: end.def.label, sub: opticSpec(end.def), underReview: !end.def.verified });
     }
     const reach = Math.max(...bx.map((b) => b.d1));
     return { st, bx, reach };
@@ -328,7 +335,7 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
     const outer = b.a1 - Math.sign(b.a1 - b.a0) * 24;
     const labelAt =
       orientation === 'horizontal'
-        ? { x: mid, y: TOP - PAD.cassette - 18 - (order % 2) * 34 }
+        ? { x: mid, y: TOP - PAD.cassette - 18 - (subLines(b.sub) - 1) * SUB_LINE - (order % 2) * 50 }
         : map(b.kind === 'equipment' || b.kind === 'optic' ? outer : mid, extent / 2);
     return {
       id: `${b.side ?? 'mid'}-${b.kind}-${i}`,
@@ -416,11 +423,19 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
     // path up to hop k, so the step control still moves hop by hop.
     const route: Point[] = [];
     const upTo: number[] = [];
+    // Route indices whose segment in is not drawn: module front ↔ cord connector.
+    const gaps = new Set<number>();
     t.hops.forEach((h, k) => {
       const prev = t.hops[k - 1];
       if (prev && prev.side === h.side) {
-        if (prev.at === 'front' && h.at === 'equipment') route.push(...cordWay(prev, h));
-        if (prev.at === 'equipment' && h.at === 'front') route.push(...cordWay(h, prev).reverse());
+        if (prev.at === 'front' && h.at === 'equipment') {
+          gaps.add(route.length);
+          route.push(...cordWay(prev, h));
+        }
+        if (prev.at === 'equipment' && h.at === 'front') {
+          route.push(...cordWay(h, prev).reverse());
+          gaps.add(route.length);
+        }
       }
       const p = slotById.get(ids[k]);
       if (p) route.push(p);
@@ -429,7 +444,9 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
     const trunkHops = t.hops.filter((h): h is Extract<Hop, { at: 'trunk' }> => h.at === 'trunk');
     const trunkHop = trunkHops.find((h) => h.side === 'left') ?? trunkHops[0];
     const colour = trunkHop ? fibreColour(trunkHop.pos, trunk.positions) : { name: 'Unknown', hex: '#80a5d9' };
-    const prefixes = upTo.filter((n) => n > 0).map((n) => pathThrough(route.slice(0, n), orientation));
+    const ends = upTo.filter((n) => n > 0);
+    const prefixes = ends.map((n) => pathThrough(route.slice(0, n), orientation, gaps));
+    const motionPrefixes = ends.map((n) => pathThrough(route.slice(0, n), orientation));
     const arr = t.arrival;
     const end: FibreGeom['end'] =
       (arr.kind === 'equipment' || arr.kind === 'optic') && arr.role !== 'unused' ? arr.role : arr.kind === 'unpatched' && outcome === 'mapped' ? 'land' : 'dark';
@@ -441,6 +458,8 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
       colourName: colour.tracer ? `${colour.name} with ${colour.tracer.name}` : colour.name,
       d: prefixes[prefixes.length - 1] ?? '',
       prefixes,
+      motion: motionPrefixes[motionPrefixes.length - 1] ?? '',
+      motionPrefixes,
       points,
       slotIds: ids,
       outcome,
@@ -493,14 +512,19 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
   return { orientation, width, height: y + 6, stations, boxes, connectors, fibres, summary };
 }
 
-/** Smooth path through points: each hop is an S-curve along the link. */
-export function pathThrough(points: Point[], orientation: Orientation): string {
+/** Smooth path through points: each hop is an S-curve along the link. The
+ *  segment into each index in `gaps` is skipped (a break in the drawing). */
+export function pathThrough(points: Point[], orientation: Orientation, gaps?: ReadonlySet<number>): string {
   if (!points.length) return '';
   const f = (n: number) => Math.round(n * 10) / 10;
   let d = `M${f(points[0].x)} ${f(points[0].y)}`;
   for (let i = 1; i < points.length; i++) {
     const p = points[i - 1];
     const q = points[i];
+    if (gaps?.has(i)) {
+      d += ` M${f(q.x)} ${f(q.y)}`;
+      continue;
+    }
     if (orientation === 'horizontal') {
       const m = (q.x - p.x) / 2;
       d += ` C${f(p.x + m)} ${f(p.y)} ${f(q.x - m)} ${f(q.y)} ${f(q.x)} ${f(q.y)}`;

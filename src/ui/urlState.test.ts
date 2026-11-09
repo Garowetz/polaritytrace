@@ -27,6 +27,7 @@ describe('link in the URL', () => {
         rearGender: 'F',
         fibre: 'SMF',
         polish: 'APC',
+        frontPolish: 'APC',
         equipment: 'sfp28-25g-lr',
         fec: 'RS',
         patchedPorts: [1, 2, 5],
@@ -37,7 +38,7 @@ describe('link in the URL', () => {
     };
     const url = encodeLink(c, presets);
     expect(url).toBe(
-      '?a=cas-a-12~lc-ab~inv~BA~F~SMF~APC~eq:sfp28-25g-lr~fec:RS~ports:1.2.5~p3:lc-aa' +
+      '?a=cas-a-12~lc-ab~inv~BA~F~SMF~APC~eq:sfp28-25g-lr~fec:RS~fp:APC~ports:1.2.5~p3:lc-aa' +
         '&t=trunk-b-12~SMF~APC~MF&b=qsfp28-100g-psm4~fec:RS',
     );
     expect(decodeLink(url, catalog, presets)).toEqual(c);

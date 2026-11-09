@@ -199,9 +199,11 @@ export function mapChannels(link: ResolvedLink): Channel[] {
       (['A', 'B'] as const).map((pos) => {
         const n = frontNumber(port, pos);
         const forward = trace(link, { side: 'left', at: 'front', port, pos });
+        const a = forward.arrival;
         return {
           id: `fibre-${n}`,
           label: `Port ${n}`,
+          ends: { left: `Port ${n}`, right: a.kind === 'unpatched' ? `Port ${frontNumber(a.port, a.pos)}` : '—' },
           forward,
           back: { hops: [], arrival: forward.arrival },
           verdict: 'PASS',
@@ -234,10 +236,15 @@ export function mapChannels(link: ResolvedLink): Channel[] {
     const back = reversed(trace(link, s.rx), link);
     const from = back.hops[0];
     const rxFrom = from?.at === 'front' ? `${sideName(from.side)} port ${frontNumber(from.port, from.pos)}` : 'nowhere';
+    const a = forward.arrival;
+    const landsAt = a.kind === 'unpatched' ? `${frontNumber(a.port, a.pos)}` : '—';
+    const fedFrom = from?.at === 'front' ? `${frontNumber(from.port, from.pos)}` : '—';
+    const far = `Ports ${landsAt} & ${fedFrom}`;
     const who = src === 'left' ? s.label : `${sideName(src)} ${s.label.toLowerCase()}`;
     return {
       id: s.id,
       label: s.label,
+      ends: src === 'left' ? { left: s.label, right: far } : { left: far, right: s.label },
       forward,
       back,
       verdict: 'PASS',

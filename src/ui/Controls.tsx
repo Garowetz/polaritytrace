@@ -18,10 +18,12 @@ interface VerdictProps {
   onApply: (c: LinkConfig) => void;
   /** The channel highlighted on the diagram, if any. */
   pinned: string | null;
+  /** Column headings for a port map, e.g. Module A and Module B. */
+  endNames: { left: string; right: string };
   onPin: (channelId: string) => void;
 }
 
-export function VerdictStrip({ result, fixes, onApply, pinned, onPin }: VerdictProps) {
+export function VerdictStrip({ result, fixes, onApply, pinned, onPin, endNames }: VerdictProps) {
   const v = verdictText(result);
   const map = v.map;
   const ok = result.channels.filter((c) => c.outcome === 'tx-to-rx').length;
@@ -42,25 +44,51 @@ export function VerdictStrip({ result, fixes, onApply, pinned, onPin }: VerdictP
           <caption className={styles.srOnly}>Every channel. Select a row to highlight it on the diagram.</caption>
           <thead>
             <tr>
-              <th scope="col">Channel</th>
-              <th scope="col">Result</th>
+              {map ? (
+                <>
+                  <th scope="col">{endNames.left}</th>
+                  <th scope="col">{endNames.right}</th>
+                </>
+              ) : (
+                <>
+                  <th scope="col">Channel</th>
+                  <th scope="col">Result</th>
+                </>
+              )}
               <th scope="col" className={styles.detailCol}>What happens</th>
             </tr>
           </thead>
           <tbody>
             {result.channels.map((c) => (
               <tr key={c.id} className={`${styles[`o_${c.outcome.replace(/-/g, '')}`]} ${pinned === c.id ? styles.pinnedRow : ''}`}>
-                <th scope="row">
-                  <button type="button" className={styles.rowButton} aria-pressed={pinned === c.id} onClick={() => onPin(c.id)}>
-                    {c.label}
-                  </button>
-                </th>
-                <td>
-                  <span className={styles.outcomeIcon} aria-hidden="true">
-                    {OUTCOME[c.outcome].icon}
-                  </span>{' '}
-                  {OUTCOME[c.outcome].text}
-                </td>
+                {map && c.ends ? (
+                  <>
+                    <th scope="row">
+                      <button type="button" className={styles.rowButton} aria-pressed={pinned === c.id} onClick={() => onPin(c.id)}>
+                        {c.ends.left}
+                      </button>
+                    </th>
+                    <td>
+                      <button type="button" className={styles.rowButton} aria-pressed={pinned === c.id} onClick={() => onPin(c.id)}>
+                        {c.ends.right}
+                      </button>
+                    </td>
+                  </>
+                ) : (
+                  <>
+                    <th scope="row">
+                      <button type="button" className={styles.rowButton} aria-pressed={pinned === c.id} onClick={() => onPin(c.id)}>
+                        {c.label}
+                      </button>
+                    </th>
+                    <td>
+                      <span className={styles.outcomeIcon} aria-hidden="true">
+                        {OUTCOME[c.outcome].icon}
+                      </span>{' '}
+                      {OUTCOME[c.outcome].text}
+                    </td>
+                  </>
+                )}
                 <td className={styles.detailCol}>{c.message}</td>
               </tr>
             ))}

@@ -163,6 +163,8 @@ export interface CassetteEnd {
   frontOrientation?: FrontOrientation;
   rearGender?: Gender;
   polish?: Polish;
+  /** Polish of the duplex front ports (and the cord ends that plug into them). Default UPC. */
+  frontPolish?: Polish;
   fibre?: Fibre;
   /** Cord used on every front port. */
   cord: string;
@@ -248,6 +250,8 @@ export interface Channel {
   back: FibreTrace;
   /** Far-end port (printed) for duplex and breakout channels. */
   farPort?: number;
+  /** Port maps: what the channel is called at End A and at End B. */
+  ends?: { left: string; right: string };
   message: string;
 }
 

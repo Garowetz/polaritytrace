@@ -9,9 +9,9 @@ describe('the parts list under the drawing', () => {
     const config = presets.find((p) => p.id === 'method-a')!.config;
     const lines = summaryLines(resolveLink(config, catalog), evaluateLink(config, catalog));
     expect(lines).toEqual([
-      'End A: Type A cassette (MPO-12 · 12F APC male → 6 × LC), A-to-B (standard) patch cords (LC to LC), equipment ports',
-      'MPO cable: Type A trunk (MPO-12 · 12F · Singlemode · APC · F/F)',
-      'End B: Type A cassette (MPO-12 · 12F APC male → 6 × LC), A-to-A patch cords (LC to LC), equipment ports',
+      'End A: Type A cassette · Front: 6 × LC/UPC · MPO: MPO/APC-12F-Down, male · Patch cords: A-to-B (standard), Ends: LC/UPC to LC/UPC · Plugged into: equipment ports',
+      'MPO cable: Type A trunk · MPO: MPO/APC-12F-F/F, singlemode',
+      'End B: Type A cassette · Front: 6 × LC/UPC · MPO: MPO/APC-12F-Down, male · Patch cords: A-to-A, Ends: LC/UPC to LC/UPC · Plugged into: equipment ports',
       'Result: Works · TIA Method A · 6 of 6 channels deliver Tx to Rx',
     ]);
   });

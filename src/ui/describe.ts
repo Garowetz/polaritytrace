@@ -1,4 +1,4 @@
-import type { DuplexCordDef, Fibre, LinkResult, Polish } from '../engine';
+import type { DuplexCordDef, Fibre, LinkResult, OpticDef, Polish } from '../engine';
 import { METHOD_NAMES } from '../engine';
 import type { ResolvedCassetteEnd, ResolvedEnd, ResolvedLink } from '../engine/resolve';
 
@@ -18,37 +18,52 @@ export function verdictText(result: LinkResult): { icon: string; text: string; m
   return map ? { icon: '→', text: 'Port map', map } : { ...VERDICT_TEXT[result.verdict], map };
 }
 
-export const footprintLabel = (positions: number, lit: number) => `MPO-${positions} · ${lit}F`;
 export const fibreWord = (f: Fibre) => (f === 'SMF' ? 'Singlemode' : 'Multimode');
-export const polishWord = (p: Polish, f: Fibre) => (p === 'UPC' && f === 'MMF' ? 'PC/UPC' : p);
 const genderWord = (g: 'M' | 'F') => (g === 'M' ? 'male' : 'female');
 
-export function cassetteSpec(end: ResolvedCassetteEnd): string {
+// Written the way docs/polarity-maps.md writes parts (Front: LC/UPC,
+// MPO: MPO/APC-12F-Down), spelled out a little more.
+const mpo = (polish: Polish, positions: number) => `MPO/${polish}-${positions}F`;
+const usedNote = (lit: number, positions: number) => (lit < positions ? `, ${lit} fibres used` : '');
+
+/** Two lines: the front, then the rear MPO. */
+export function cassetteSpec(end: ResolvedCassetteEnd): string[] {
   const d = end.def;
-  return `${footprintLabel(d.positions, d.litPositions.length)} ${polishWord(end.polish, end.fibre)} ${genderWord(end.rearGender)} → ${d.frontMap.length} × ${d.frontConnector}`;
+  const key = d.rearAdapter === 'B' ? 'Up' : 'Down';
+  return [
+    `Front: ${d.frontMap.length} × ${d.frontConnector}/${end.frontPolish}`,
+    `MPO: ${mpo(end.polish, d.positions)}-${key}, ${genderWord(end.rearGender)}${usedNote(d.litPositions.length, d.positions)}`,
+  ];
 }
 
 export function trunkSpec(link: ResolvedLink): string {
   const t = link.trunk;
-  return `${footprintLabel(t.positions, t.litPositions.length)} · ${fibreWord(link.fibre)} · ${polishWord(link.polish, link.fibre)} · ${link.trunkGender.join('/')}`;
+  return `MPO: ${mpo(link.polish, t.positions)}-${link.trunkGender.join('/')}, ${fibreWord(link.fibre).toLowerCase()}${usedNote(t.litPositions.length, t.positions)}`;
 }
 
-export const cordSpec = (cord: DuplexCordDef) => `${cord.ends.cassette} to ${cord.ends.equipment} patch cords`;
+/** The module end of the cord matches the module front; the other end the equipment. */
+export const cordSpec = (cord: DuplexCordDef, end: ResolvedCassetteEnd) =>
+  `Ends: ${cord.ends.cassette}/${end.frontPolish} to ${cord.ends.equipment}/${end.equipment.polish ?? 'UPC'}`;
+
+export function opticSpec(def: OpticDef): string {
+  const n = def.mpo?.positions;
+  const conn = n && def.polish ? `MPO: ${mpo(def.polish, n)}` : def.connector;
+  return def.fibre ? `${conn}, ${fibreWord(def.fibre).toLowerCase()}` : conn;
+}
 
 function endLine(name: string, end: ResolvedEnd): string {
-  if (end.kind === 'mpoOptic') return `${name}: ${end.def.label} (${end.def.connector}${end.def.fibre ? `, ${fibreWord(end.def.fibre)}` : ''})`;
-  const parts = [`${end.def.label} (${cassetteSpec(end)})`];
+  if (end.kind === 'mpoOptic') return `${name}: ${end.def.label} · ${opticSpec(end.def)}`;
+  const parts = [end.def.label, ...cassetteSpec(end)];
   if (end.bare) {
-    parts.push('nothing plugged in');
+    parts.push('Plugged into: nothing');
   } else {
     const ports = [...end.patched];
     const cords = [...new Set(ports.map((p) => end.cordFor(p).label))];
-    const c = end.cordFor(ports[0] ?? 1);
-    parts.push(`${cords.join(' and ')} patch cords (${c.ends.cassette} to ${c.ends.equipment})`);
-    parts.push(end.equipment.generic ? 'equipment ports' : `${end.equipment.label} optics`);
+    parts.push(`Patch cords: ${cords.join(' and ')}, ${cordSpec(end.cordFor(ports[0] ?? 1), end)}`);
+    parts.push(`Plugged into: ${end.equipment.generic ? 'equipment ports' : `${end.equipment.label} optics`}`);
   }
   if (end.mount === 'inverted') parts.push('mounted upside down');
-  return `${name}: ${parts.join(', ')}`;
+  return `${name}: ${parts.join(' · ')}`;
 }
 
 /** The parts list and result written under the drawing. */
@@ -59,7 +74,7 @@ export function summaryLines(link: ResolvedLink, result: LinkResult): string[] {
   const count = !v.map && result.channels.length ? ` · ${ok} of ${result.channels.length} channels deliver Tx to Rx` : '';
   return [
     endLine('End A', link.left),
-    `MPO cable: ${link.trunk.label} (${trunkSpec(link)})`,
+    `MPO cable: ${link.trunk.label} · ${trunkSpec(link)}`,
     endLine('End B', link.right),
     `Result: ${v.text} · ${method}${count}`,
   ];
