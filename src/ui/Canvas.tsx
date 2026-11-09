@@ -127,8 +127,8 @@ export function Canvas({ geom, focus, onHover, onPin, stepHop, animate, onBox }:
 
       <g className={styles.summary}>
         {geom.summary.map((s, i) => (
-          <text key={i} x={s.x} y={s.y} textAnchor={s.anchor} className={s.strong ? styles.summaryStrong : undefined}>
-            {s.text}
+          <text key={i} x={s.x} y={s.y} textAnchor={s.anchor} className={s.strong || s.highlight ? styles.summaryStrong : undefined}>
+            {s.highlight ? <Highlighted text={s.text} word={s.highlight.text} className={styles[`tone_${s.highlight.tone}`]} /> : s.text}
           </text>
         ))}
       </g>
@@ -182,8 +182,20 @@ function BoxShape({ box, onBox }: { box: BoxGeom; onBox?: (b: BoxGeom) => void }
   );
 }
 
+function Highlighted({ text, word, className }: { text: string; word: string; className?: string }) {
+  const i = text.indexOf(word);
+  return (
+    <>
+      {text.slice(0, i)}
+      <tspan className={className}>{word}</tspan>
+      {text.slice(i + word.length)}
+    </>
+  );
+}
+
 function BoxLabel({ box, vertical, onBox }: { box: BoxGeom; vertical: boolean; onBox?: (b: BoxGeom) => void }) {
   const sub = box.sub ? box.sub.split('\n') : [];
+  const gap = vertical ? 16 : 21;
   const pillW = Math.max(box.label.length, ...sub.map((l) => l.length)) * 7.4 + 20;
   return (
     <g className={`${styles.box} ${styles[`box_${box.kind}`]}`}>
@@ -210,7 +222,7 @@ function BoxLabel({ box, vertical, onBox }: { box: BoxGeom; vertical: boolean; o
             {box.underReview ? ' *' : ''}
           </text>
           {sub.map((line, i) => (
-            <text key={i} textAnchor="middle" y={16 * (i + 1)} className={styles.labelSub}>
+            <text key={i} textAnchor="middle" y={gap * (i + 1)} className={styles.labelSub}>
               {line}
             </text>
           ))}
@@ -239,12 +251,13 @@ function Station({
   const showNumbers = station.kind === 'trunk' || station.kind === 'optic';
   const ports = station.kind === 'equipment';
   // Cable position numbers sit just off the fibre so they stay readable.
-  const lift = station.kind === 'trunk' && !vertical ? { x: 0, y: -7 } : { x: 0, y: 0 };
+  const lift = station.kind === 'trunk' && !vertical ? { x: 0, y: -9 } : { x: 0, y: 0 };
 
   return (
     <g className={styles.station}>
-      {station.slots.map((s) => {
-        const label = at(s);
+      {station.slots.map((s, i) => {
+        // Phones: cable numbers alternate between two rows so bigger digits fit side by side.
+        const label = at(s, station.kind === 'trunk' && vertical ? (i % 2) * 10 : 0);
         return (
           <g
             key={s.id}

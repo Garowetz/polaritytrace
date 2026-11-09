@@ -13,7 +13,7 @@ The owner works in sales, not engineering. Explain things plainly, give clear "h
 - **Unbranded.**
   - Use the colours and fonts from `/brand` only.
   - Never put the company name, logo or wordmark in the UI, metadata, PDF export or README.
-  - The site has its own Polarity Trace logo (`src/ui/Logo.tsx`, same drawing in `public/favicon.svg`). It may also use the TIA fibre colour orange `#F28C28`, as approved by the owner.
+  - The site has its own Polarity Trace logo (`src/ui/Logo.tsx`, same drawing in `public/favicon.svg`). It may also use the TIA fibre colour orange `#F28C28`, as approved by the owner. The result line under the diagram colours its verdict word with TIA green `#2E9E4F` (works), TIA orange (works with warnings) and brand coral (does not work), also owner-approved.
 - **No backend, nothing stored.** All state lives in the URL so links are shareable.
 - **Mobile matters.** Shared links will often be opened on phones.
 

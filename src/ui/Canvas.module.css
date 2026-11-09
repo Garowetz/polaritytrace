@@ -255,13 +255,49 @@
 
 .posTight {
   /* Phones: the cable positions sit side by side at the tight pitch. */
-  font-size: 8px;
+  font-size: 11px;
+  stroke-width: 2px;
 }
 
 .roleLabel {
   font-size: 10px;
   font-weight: 700;
   fill: var(--text);
+}
+
+.horizontal .labelMain {
+  font-size: 20px;
+}
+
+.horizontal .labelSub {
+  font-size: 16.5px;
+}
+
+.horizontal .posLabel {
+  font-size: 13.5px;
+}
+
+.horizontal .frontLabel {
+  font-size: 14.5px;
+}
+
+/* A wide drawing is scaled down to fit the page, so its text starts bigger. */
+.horizontal .summary text {
+  font-size: 16px;
+}
+
+/* The verdict word in the result line. Green is the TIA-598 green fibre,
+   amber the TIA orange (both owner-approved), red the brand coral. */
+.summary .tone_good {
+  fill: #2e9e4f;
+}
+
+.summary .tone_caution {
+  fill: #f28c28;
+}
+
+.summary .tone_bad {
+  fill: var(--brand-coral);
 }
 
 .summary text {

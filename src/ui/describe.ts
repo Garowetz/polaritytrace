@@ -18,6 +18,10 @@ export function verdictText(result: LinkResult): { icon: string; text: string; m
   return map ? { icon: '→', text: 'Port map', map } : { ...VERDICT_TEXT[result.verdict], map };
 }
 
+/** Colour of the verdict word in the result line. */
+export type Tone = 'good' | 'caution' | 'bad';
+const TONE: Partial<Record<LinkResult['verdict'], Tone>> = { PASS: 'good', WARN: 'caution', FAIL: 'bad', BLOCK: 'bad' };
+
 export const fibreWord = (f: Fibre) => (f === 'SMF' ? 'Singlemode' : 'Multimode');
 const genderWord = (g: 'M' | 'F') => (g === 'M' ? 'Male' : 'Female');
 
@@ -29,6 +33,16 @@ const usedNote = (lit: number, positions: number) => (lit < positions ? `, ${lit
 /** Front connectors as counted on the module: one per LC, one per duplex CS. */
 export function frontCount(def: CassetteDef): number {
   return def.frontConnector === 'CS' ? def.frontMap.length : def.frontMap.length * 2;
+}
+
+/** The size label used on the drawing, e.g. MPO-12 · 8F. */
+export const mpoSize = (positions: number, lit: number) => `MPO-${positions} · ${lit}F`;
+
+/** The short facts on the drawing; the full specs go in the parts list. */
+export const cassetteShort = (def: CassetteDef) => `${frontCount(def)} × ${def.frontConnector}`;
+export const trunkShort = (link: ResolvedLink) => mpoSize(link.trunk.positions, link.trunk.litPositions.length);
+export function opticShort(def: OpticDef): string {
+  return def.mpo ? mpoSize(def.mpo.positions, def.mpo.lanes.length * 2) : def.connector;
 }
 
 /** Two lines: the front, then the rear MPO. */
@@ -76,6 +90,8 @@ export interface Summary {
   middle: string[];
   right: string[];
   result: string;
+  /** The verdict word inside `result`, and its colour (none for a port map). */
+  verdict: { text: string; tone?: Tone };
 }
 
 /** The parts list and result written under the drawing: End A, the cable and End B, then the result. */
@@ -89,6 +105,7 @@ export function summaryLines(link: ResolvedLink, result: LinkResult): Summary {
     middle: [`MPO cable: ${link.trunk.label}`, trunkSpec(link)],
     right: endLines('End B', link.right),
     result: `Result: ${v.text} · ${method}${count}`,
+    verdict: { text: v.text, tone: v.map ? undefined : TONE[result.verdict] },
   };
 }
 

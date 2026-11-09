@@ -1,7 +1,7 @@
 import { fibreColour } from '../data/colours';
 import { frontNumber, resolveLink, trace, type Catalog, type ChannelOutcome, type FibreTrace, type Hop, type LinkConfig, type LinkResult, type PolarityType, type Side } from '../engine';
 import type { ResolvedEnd } from '../engine/resolve';
-import { cassetteSpec, cordSpec, opticSpec, summaryLines, trunkSpec, wrap } from './describe';
+import { cassetteShort, opticShort, summaryLines, trunkShort, wrap, type Tone } from './describe';
 
 // Pure geometry: turns engine output into points and paths. No React here, and
 // no polarity decisions: every fibre path is exactly the engine's hop list.
@@ -87,13 +87,14 @@ export interface LinkGeom {
   connectors: ConnectorGeom[];
   fibres: FibreGeom[];
   /** Parts list and result under the drawing, one entry per line. */
-  summary: { x: number; y: number; text: string; anchor: 'start' | 'middle' | 'end'; strong: boolean }[];
+  summary: { x: number; y: number; text: string; anchor: 'start' | 'middle' | 'end'; strong: boolean; highlight?: { text: string; tone: Tone } }[];
 }
 
 const PITCH = 22;
 // Fibres pack closer at the module's rear MPO and through the cable, so they
 // read as one MPO, but not so close that the moving light dots touch.
 const TIGHT = 0.62;
+const TIGHT_WIDE = 0.7; // a wide drawing has room for bigger cable numbers
 const ALONG = { margin: 120, cord: 230, cassette: 180, adapter: 100, trunk: 320 };
 const TOP = 146; // room for component labels above (horizontal)
 const GUTTER = 24;
@@ -225,13 +226,13 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
           d0: TRUNK_OVERHANG + GAP,
           d1: dFront + 10,
           label: end.def.label,
-          sub: cassetteSpec(end).join('\n'),
+          sub: cassetteShort(end.def),
           underReview: !end.def.verified,
         },
       );
       if (!end.bare) {
         bx.push(
-          { kind: 'cord', d0: dFront + 10 + GAP, d1: dEq - 10, label: cord.label, sub: cordSpec(cord, end), underReview: !cord.verified },
+          { kind: 'cord', d0: dFront + 10 + GAP, d1: dEq - 10, label: cord.label, underReview: !cord.verified },
           {
             kind: 'equipment',
             d0: dEq - 10,
@@ -247,7 +248,7 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
       const all = Array.from({ length: n }, (_, i) => i + 1);
       const dOpt = ALONG.adapter + 20;
       st.push({ kind: 'optic', dist: dOpt, slots: positionSlots(n, all, (p) => opticRole(end, p)), labelOut: true });
-      bx.push({ kind: 'optic', d0: dOpt - 10, d1: dOpt + 86, label: end.def.label, sub: opticSpec(end.def), underReview: !end.def.verified });
+      bx.push({ kind: 'optic', d0: dOpt - 10, d1: dOpt + 86, label: end.def.label, sub: opticShort(end.def), underReview: !end.def.verified });
     }
     const reach = Math.max(...bx.map((b) => b.d1));
     return { st, bx, reach };
@@ -273,7 +274,7 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
   raw.push({ key: 'right:trunk', along: trunkR, slots: trunkSlots(), labelDir: -1, kind: 'trunk' });
   // The cable: an MPO plug at each end and the jacket between them.
   boxSpecs.push(
-    { kind: 'trunk', a0: trunkL + PLUG, a1: trunkR - PLUG, label: trunk.label, sub: trunkSpec(link), underReview: !trunk.verified },
+    { kind: 'trunk', a0: trunkL + PLUG, a1: trunkR - PLUG, label: trunk.label, sub: trunkShort(link), underReview: !trunk.verified },
     { kind: 'plug', a0: trunkL - TRUNK_OVERHANG, a1: trunkL + PLUG, label: trunk.label, underReview: !trunk.verified },
     { kind: 'plug', a0: trunkR + TRUNK_OVERHANG, a1: trunkR - PLUG, label: trunk.label, underReview: !trunk.verified },
   );
@@ -282,7 +283,8 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
 
   // 2. Across positions: centre every station on the widest one. The rear
   //    MPO and the cable use the tighter pitch.
-  const pitchOf = (s: Raw) => (s.kind === 'internal' || s.kind === 'trunk' ? PITCH * TIGHT : PITCH);
+  const tight = orientation === 'horizontal' ? TIGHT_WIDE : TIGHT;
+  const pitchOf = (s: Raw) => (s.kind === 'internal' || s.kind === 'trunk' ? PITCH * tight : PITCH);
   const span = (s: Raw) => Math.max(...s.slots.map((x) => x.u)) * pitchOf(s);
   const extent = Math.max(...raw.map(span));
   const tightHalf = Math.max(...raw.filter((s) => pitchOf(s) < PITCH).map(span)) / 2;
@@ -329,7 +331,7 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
     const outer = b.a1 - Math.sign(b.a1 - b.a0) * 24;
     const labelAt =
       orientation === 'horizontal'
-        ? { x: mid, y: TOP - PAD.cassette - 18 - (subLines(b.sub) - 1) * SUB_LINE - (order % 2) * 58 }
+        ? { x: mid, y: TOP - PAD.cassette - 30 - (subLines(b.sub) - 1) * SUB_LINE - (order % 2) * 64 }
         : map(b.kind === 'equipment' || b.kind === 'optic' ? outer : mid, extent / 2);
     return {
       id: `${b.side ?? 'mid'}-${b.kind}-${i}`,
@@ -483,9 +485,11 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
 
   // 5. The parts list and result, so a copied picture explains itself:
   //    End A on the left, End B on the right, the cable and the result
-  //    centred. Side by side on a wide drawing, stacked on a phone.
-  const LINE = 18;
-  const CHAR = 7;
+  //    centred. Side by side on a wide drawing; stacked and left-aligned on a phone.
+  const wide = orientation === 'horizontal';
+  // Matches the summary font: 16px on a wide drawing, 13px on a phone.
+  const LINE = wide ? 21 : 18;
+  const CHAR = wide ? 8.6 : 7;
   const sum = summaryLines(link, result);
   const summary: LinkGeom['summary'] = [];
   const xOf = { start: GUTTER, middle: width / 2, end: width - GUTTER } as const;
@@ -499,17 +503,20 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
     });
     return y;
   };
-  let y = drawn + 20;
-  const wide = orientation === 'horizontal';
+  let y = drawn + 24;
   const chars = wide ? Math.floor(width / 3 / CHAR) - 4 : Math.floor((width - 2 * GUTTER) / CHAR);
   if (wide) {
     y = Math.max(block(sum.left, 'start', y, chars), block(sum.middle, 'middle', y, chars), block(sum.right, 'end', y, chars));
   } else {
     y = block(sum.left, 'start', y, chars) + 8;
-    y = block(sum.middle, 'middle', y, chars) + 8;
-    y = block(sum.right, 'end', y, chars);
+    y = block(sum.middle, 'start', y, chars) + 8;
+    y = block(sum.right, 'start', y, chars);
   }
-  y = block([sum.result], 'middle', y + 10, wide ? 200 : chars) + 4;
+  const first = summary.length;
+  y = block([sum.result], wide ? 'middle' : 'start', y + 10, wide ? 200 : chars) + 4;
+  // The verdict word is coloured; it always lands on the result's first line.
+  const tone = sum.verdict.tone;
+  if (tone && summary[first]?.text.includes(sum.verdict.text)) summary[first].highlight = { text: sum.verdict.text, tone };
   return { orientation, width, height: y + 6, stations, boxes, connectors, fibres, summary };
 }
 

@@ -15,17 +15,13 @@ import { useMediaQuery } from './useMediaQuery';
 
 type Theme = 'light' | 'dark';
 
-function systemTheme(): Theme {
-  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-}
-
 const STEP_MS = 2200;
 
 const defaultConfig = () => (presets.find((p) => p.id === DEFAULT_PRESET) ?? presets[0]).config;
 
 export function App() {
-  // Theme is per-session only: nothing is stored.
-  const [theme, setTheme] = useState<Theme>(systemTheme);
+  // Lab (dark) mode by default. Theme is per-session only: nothing is stored.
+  const [theme, setTheme] = useState<Theme>('dark');
   // The link comes from the URL when there is a usable one.
   const [config, setConfig] = useState<LinkConfig>(() => decodeLink(window.location.search, catalog, presets) ?? defaultConfig());
   const [badLink, setBadLink] = useState(

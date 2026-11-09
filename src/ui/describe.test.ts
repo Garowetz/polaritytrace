@@ -27,6 +27,7 @@ describe('the parts list under the drawing', () => {
         'Plugged into: equipment ports',
       ],
       result: 'Result: Works · TIA Method A · 6 of 6 channels deliver Tx to Rx',
+      verdict: { text: 'Works', tone: 'good' },
     });
   });
 
