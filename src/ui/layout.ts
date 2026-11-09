@@ -552,13 +552,19 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
   const res = resultLine(result);
   const word = res.verdict.text.toUpperCase();
   const pillH = wide ? 30 : 24;
-  const pillW = word.length * CHAR * 1.05 + (wide ? 28 : 20);
+  // The pill text is bold capitals with wide letter spacing, so it needs more
+  // room per character than the sheet text.
+  const pillW = word.length * (wide ? 11.6 : 9.4) + (wide ? 28 : 20);
   const rowTop = y + (wide ? 12 : 10);
   sheet.pill = { x: x0 + PADX, y: rowTop, w: pillW, h: pillH, text: word, tone: res.verdict.tone ?? 'none' };
-  const detailX = x0 + PADX + pillW + 12;
+  // The detail sits beside the pill, or under it when a long verdict leaves too little room.
+  const besideX = x0 + PADX + pillW + 12;
+  const beside = (x0 + w - PADX - besideX) / CHAR >= 18;
+  const detailX = beside ? besideX : x0 + PADX;
+  const detailTop = beside ? rowTop + pillH / 2 : rowTop + pillH + LINE * 0.8;
   const detailLines = wrap(res.detail, Math.floor((x0 + w - PADX - detailX) / CHAR));
-  detailLines.forEach((line, i) => sheet.texts.push({ x: detailX, y: rowTop + pillH / 2 + i * LINE, text: line, anchor: 'start', kind: 'detail' }));
-  y = Math.max(rowTop + pillH, rowTop + pillH / 2 + (detailLines.length - 1) * LINE + LINE / 2) + (wide ? 12 : 10);
+  detailLines.forEach((line, i) => sheet.texts.push({ x: detailX, y: detailTop + i * LINE, text: line, anchor: 'start', kind: 'detail' }));
+  y = Math.max(rowTop + pillH, detailTop + (detailLines.length - 1) * LINE + LINE / 2) + (wide ? 12 : 10);
   sheet.rects.unshift({ x: x0, y: y0, w, h: y - y0, kind: 'frame' });
   return { orientation, width, height: y + 8, stations, boxes, connectors, fibres, sheet };
 }

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import type { Preset } from '../data/presets';
 import { defaultPolish, NO_EQUIPMENT, type CableConfig, type Catalog, type Fibre, type LinkConfig, type Polish, type Side } from '../engine';
 import styles from './Builder.module.css';
@@ -40,7 +40,8 @@ export function Builder({ catalog, config, onChange, presets, activePreset, pick
         return { label: o.label, sub: `MPO optic · ${o.connector}`, review: !o.verified };
       }
       const c = catalog.cassettes.find((x) => x.id === end.cassette)!;
-      return { label: c.label, sub: `${footprintLabel(c.positions, c.litPositions.length)} → ${frontCount(c)} × ${c.frontConnector}`, review: !c.verified };
+      const flipped = end.mount === 'inverted' ? ' · Upside down' : '';
+      return { label: c.label, sub: `${footprintLabel(c.positions, c.litPositions.length)} → ${frontCount(c)} × ${c.frontConnector}${flipped}`, review: !c.verified };
     }
     if (end.kind !== 'cassette') return { label: '', sub: '', review: false };
     if (t.what === 'cord') {
@@ -56,7 +57,7 @@ export function Builder({ catalog, config, onChange, presets, activePreset, pick
     const end = config[side];
     return (
       <Card title={sideTitle(side)}>
-        <PartButton field="Part" {...nameOf({ what: 'part', side })} onClick={() => onPicker({ what: 'part', side })} />
+        <PartButton field={end.kind === 'cassette' ? 'Module' : 'Optic'} {...nameOf({ what: 'part', side })} onClick={() => onPicker({ what: 'part', side })} />
         {end.kind === 'cassette' && (
           <>
             <Segmented<Polish>
@@ -69,23 +70,29 @@ export function Builder({ catalog, config, onChange, presets, activePreset, pick
               <PartButton field="Patch cords" {...nameOf({ what: 'cord', side })} onClick={() => onPicker({ what: 'cord', side })} />
             )}
             <PartButton field="Plugged into" {...nameOf({ what: 'equipment', side })} onClick={() => onPicker({ what: 'equipment', side })} />
-            <div className={styles.checkRow}>
-              <label className={styles.check}>
-                <input
-                  type="checkbox"
-                  checked={end.mount === 'inverted'}
-                  onChange={(e) => onChange({ ...config, [side]: { ...end, mount: e.target.checked ? 'inverted' : undefined } })}
-                />
-                Mounted upside down
-              </label>
-              <Tip label="What mounted upside down means">
-                The module is installed flipped over in the panel. Its MPO key faces the other way and its port numbers run in reverse. Some
-                methods, such as Method B, need one end flipped.
-              </Tip>
-            </div>
           </>
         )}
       </Card>
+    );
+  };
+
+  // Upside down belongs with the module itself, so it sits in the module picker.
+  const mountSetting = (side: Side) => {
+    const end = config[side];
+    if (end.kind !== 'cassette') return undefined;
+    return (
+      <div className={styles.mountRow}>
+        <Segmented<'upright' | 'inverted'>
+          label="How it is mounted"
+          value={end.mount === 'inverted' ? 'inverted' : 'upright'}
+          options={[
+            { value: 'upright', label: 'Right way up' },
+            { value: 'inverted', label: 'Upside down' },
+          ]}
+          onChange={(m) => onChange({ ...config, [side]: { ...end, mount: m === 'inverted' ? 'inverted' : undefined } })}
+          hint="Upside down flips the module over in the panel: its MPO key faces the other way and its port numbers run in reverse. Method B needs one end flipped."
+        />
+      </div>
     );
   };
 
@@ -122,6 +129,7 @@ export function Builder({ catalog, config, onChange, presets, activePreset, pick
         <Picker
           key={JSON.stringify(picker)}
           {...pickerContent(catalog, config, picker)}
+          extra={picker.what === 'part' ? mountSetting(picker.side) : undefined}
           selected={selectedId(config, picker)}
           onPick={(id) => onChange(applyChoice(catalog, config, picker, id))}
           onClose={() => onPicker(null)}
@@ -130,6 +138,14 @@ export function Builder({ catalog, config, onChange, presets, activePreset, pick
     </section>
   );
 }
+
+// The module picker, most used first.
+const CASSETTE_GROUPS: { title: string; ids: string[] }[] = [
+  { title: 'Most used', ids: ['cas-a-12', 'cas-b-12', 'cas-u1-12', 'cas-u1-8'] },
+  { title: 'MPO-16 and MPO-24 modules', ids: ['cas-u1-16', 'cas-u1-16-cs', 'cas-u1-24', 'cas-u1-24-16f', 'cas-a-24'] },
+  { title: 'Other and vendor-specific', ids: ['cas-u2-12', 'cas-b2-12', 'cas-bn-12', 'cas-af-12'] },
+];
+const rank = (ids: string[], id: string) => (ids.includes(id) ? ids.indexOf(id) : ids.length);
 
 function pickerContent(catalog: Catalog, config: LinkConfig, t: PickerTarget): { title: string; groups: TileGroup[] } {
   if (t.what === 'trunk') {
@@ -157,18 +173,23 @@ function pickerContent(catalog: Catalog, config: LinkConfig, t: PickerTarget): {
     return {
       title: `Choose ${where}`,
       groups: [
-        {
-          title: 'Cassettes and modules',
-          tiles: pickableCassettes(catalog).map((x) => ({
-            id: x.id,
-            label: x.label,
-            blurb: x.blurb,
-            learnMore: x.learnMore,
-            tag: footprintLabel(x.positions, x.litPositions.length),
-            underReview: !x.verified,
-            picture: <CassetteMini cassette={x} />,
-          })),
-        },
+        ...CASSETTE_GROUPS.map((g, i) => ({
+          title: g.title,
+          tiles: pickableCassettes(catalog)
+            // Anything not named in a group lands in the last one.
+            .filter((x) => g.ids.includes(x.id) || (i === CASSETTE_GROUPS.length - 1 && !CASSETTE_GROUPS.some((h) => h.ids.includes(x.id))))
+            .sort((x, y) => rank(g.ids, x.id) - rank(g.ids, y.id))
+            .map((x) => ({
+              id: x.id,
+              label: x.label,
+              blurb: x.blurb,
+              learnMore: x.learnMore,
+              badge: `${x.litPositions.length}F`,
+              tag: `${footprintLabel(x.positions, x.litPositions.length)} rear → ${frontCount(x)} × ${x.frontConnector} front`,
+              underReview: !x.verified,
+              picture: <CassetteMini cassette={x} />,
+            })),
+        })),
         {
           title: 'MPO optics, plugged straight into the cable',
           tiles: pickableMpoOptics(catalog).map((x) => ({
@@ -291,21 +312,6 @@ function Segmented<T extends string>({
       </div>
       {hint && <span className={styles.hint}>{hint}</span>}
     </div>
-  );
-}
-
-/** An (i) button: the text shows on hover with a mouse, and on tap. */
-function Tip({ label, children }: { label: string; children: ReactNode }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <span className={styles.tip} onMouseLeave={() => setOpen(false)}>
-      <button type="button" className={styles.tipButton} aria-label={label} aria-expanded={open} onClick={() => setOpen(!open)} onBlur={() => setOpen(false)}>
-        i
-      </button>
-      <span role="tooltip" className={`${styles.tipText} ${open ? styles.tipOpen : ''}`}>
-        {children}
-      </span>
-    </span>
   );
 }
 

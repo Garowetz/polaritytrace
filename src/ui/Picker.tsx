@@ -10,6 +10,8 @@ export interface Tile {
   underReview?: boolean;
   /** Short tag such as "MPO-16" or "Singlemode". */
   tag?: string;
+  /** A count that should stand out, such as "12F". */
+  badge?: string;
 }
 
 export interface TileGroup {
@@ -20,13 +22,15 @@ export interface TileGroup {
 interface Props {
   title: string;
   groups: TileGroup[];
+  /** Settings for the current choice, shown above the tiles. */
+  extra?: ReactNode;
   selected: string;
   onPick: (id: string) => void;
   onClose: () => void;
 }
 
 /** A modal card of picture tiles. Esc, the close button or the backdrop closes it. */
-export function Picker({ title, groups, selected, onPick, onClose }: Props) {
+export function Picker({ title, groups, extra, selected, onPick, onClose }: Props) {
   const ref = useRef<HTMLDialogElement>(null);
   const [open, setOpen] = useState<string | null>(null);
 
@@ -57,6 +61,7 @@ export function Picker({ title, groups, selected, onPick, onClose }: Props) {
           </button>
         </header>
         <div className={styles.body}>
+          {extra && <div className={styles.extra}>{extra}</div>}
           {groups
             .filter((g) => g.tiles.length)
             .map((g) => (
@@ -81,8 +86,9 @@ export function Picker({ title, groups, selected, onPick, onClose }: Props) {
                           <span className={styles.picture}>{t.picture}</span>
                           <span className={styles.tileHead}>
                             <span className={styles.tileLabel}>{t.label}</span>
-                            {t.tag && <span className={styles.tag}>{t.tag}</span>}
+                            {t.badge ? <span className={styles.badge}>{t.badge}</span> : t.tag && <span className={styles.tag}>{t.tag}</span>}
                           </span>
+                          {t.badge && t.tag && <span className={styles.tag}>{t.tag}</span>}
                           <span className={styles.blurb}>{t.blurb}</span>
                           {t.underReview && <span className={styles.review}>Under review</span>}
                         </button>

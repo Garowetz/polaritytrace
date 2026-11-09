@@ -84,10 +84,10 @@ export interface PartsColumn {
 
 /** One end, one fact per row. */
 function endRows(end: ResolvedEnd): PartRow[] {
-  if (end.kind === 'mpoOptic') return [{ label: 'Part', value: end.def.label }, { label: 'Spec', value: opticSpec(end.def) }];
+  if (end.kind === 'mpoOptic') return [{ label: 'Optic', value: end.def.label }, { label: 'Spec', value: opticSpec(end.def) }];
   const [front, rear] = cassetteSpec(end);
   const rows: PartRow[] = [
-    { label: 'Part', value: `${end.def.label}${end.mount === 'inverted' ? ', mounted upside down' : ''}` },
+    { label: 'Module', value: `${end.def.label}${end.mount === 'inverted' ? ', mounted upside down' : ''}` },
     { label: 'Front', value: front.replace(/^Front: /, '') },
     { label: 'Rear', value: rear },
   ];
@@ -109,7 +109,7 @@ function endRows(end: ResolvedEnd): PartRow[] {
 export function partsColumns(link: ResolvedLink): PartsColumn[] {
   return [
     { heading: 'End A', rows: endRows(link.left) },
-    { heading: 'MPO cable', rows: [{ label: 'Part', value: link.trunk.label }, { label: 'Spec', value: trunkSpec(link) }] },
+    { heading: 'MPO cable', rows: [{ label: 'Trunk', value: link.trunk.label }, { label: 'Spec', value: trunkSpec(link) }] },
     { heading: 'End B', rows: endRows(link.right) },
   ];
 }

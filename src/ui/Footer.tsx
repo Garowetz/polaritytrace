@@ -13,13 +13,10 @@ export function Footer() {
           <p>Based on TIA-568 polarity methods and TIA-598 fibre colours.</p>
           <p>A reference tool. Check against the manufacturer's drawings before installing.</p>
         </div>
-        <div>
-          <p>Nothing is stored. Your link holds the whole design, so it can be shared.</p>
-          <p>Updated {__BUILD_DATE__}</p>
-        </div>
       </div>
       <div className={styles.bottom}>
         <p>© {new Date().getFullYear()} Polarity Trace. All rights reserved.</p>
+        <p>Updated {__BUILD_DATE__}</p>
       </div>
     </footer>
   );
