@@ -1,17 +1,7 @@
 import { forwardRef, useState } from 'react';
-import { type Channel, type ChannelOutcome, type Fix, type LinkConfig, type LinkResult, type Step } from '../engine';
+import { type Channel, type Fix, type LinkConfig, type LinkResult, type Step } from '../engine';
 import styles from './Controls.module.css';
-import { resultLine, VERDICT_TEXT, verdictText } from './describe';
-
-const SEVERITY_ORDER = { block: 0, fail: 1, warn: 2, note: 3 } as const;
-
-const OUTCOME: Record<ChannelOutcome, { icon: string; text: string }> = {
-  'tx-to-rx': { icon: '✓', text: 'Tx reaches Rx' },
-  'tx-to-tx': { icon: '✕', text: 'Tx hits Tx' },
-  split: { icon: '!', text: 'Only one direction works' },
-  dark: { icon: '○', text: 'No light' },
-  mapped: { icon: '→', text: 'Lands on' },
-};
+import { OUTCOME, resultLine, SEVERITY_ORDER, SEVERITY_WORD, VERDICT_TEXT, verdictText } from './describe';
 
 interface VerdictProps {
   result: LinkResult;
@@ -131,7 +121,7 @@ export function VerdictStrip({ result, fixes, onApply, pinned, onPin, endNames, 
         <ul className={styles.issues}>
           {issues.map((i, k) => (
             <li key={k} className={styles[`s_${i.severity}`]}>
-              <span className={styles.sev}>{i.severity === 'note' ? 'Note' : i.severity === 'warn' ? 'Warning' : i.severity === 'fail' ? 'Fails' : 'Blocked'}</span>
+              <span className={styles.sev}>{SEVERITY_WORD[i.severity]}</span>
               {i.message}
             </li>
           ))}

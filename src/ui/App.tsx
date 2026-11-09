@@ -8,6 +8,7 @@ import { Builder, pickerForBox, presetFor } from './Builder';
 import type { PickerTarget } from './choices';
 import { StepControls, VerdictStrip } from './Controls';
 import { partsColumns } from './describe';
+import { pdfContent } from './pdfContent';
 import { Footer } from './Footer';
 import { layoutLink } from './layout';
 import { Logo } from './Logo';
@@ -49,9 +50,10 @@ export function App() {
   const [step, setStep] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
   const [picker, setPicker] = useState<PickerTarget | null>(null);
-  // Phones save the tall drawing they show, or the wide one drawn just for the picture.
+  // Phones save the tall drawing they show, or the wide one drawn just for the
+  // picture. The PDF always uses the wide drawing, in light colours.
   const [saveMenu, setSaveMenu] = useState(false);
-  const [savingWide, setSavingWide] = useState(false);
+  const [exporting, setExporting] = useState<'wide' | 'pdf' | null>(null);
 
   const vertical = useMediaQuery('(max-width: 760px)');
   const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
@@ -92,14 +94,39 @@ export function App() {
     void savePicture(svg, getComputedStyle(stage).backgroundColor, `Polarity Trace · ${window.location.href}`, 'polarity-trace.png');
   };
   const save = () => saveSvg(stageRef.current?.querySelector('svg'));
-  // The wide picture on a phone: drawn off screen, saved, then removed.
+  // The wide drawing for a phone picture or a PDF: drawn off screen, saved, then removed.
   const exportRef = useRef<HTMLDivElement>(null);
-  const wideGeom = useMemo(() => (savingWide ? layoutLink(config, result, catalog, 'horizontal') : null), [savingWide, config, result]);
+  const wideGeom = useMemo(() => (exporting ? layoutLink(config, result, catalog, 'horizontal') : null), [exporting, config, result]);
   useEffect(() => {
-    if (!savingWide) return;
-    saveSvg(exportRef.current?.querySelector('svg'));
-    setSavingWide(false);
-  }, [savingWide]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!exporting) return;
+    const svg = exportRef.current?.querySelector('svg');
+    if (exporting === 'wide') {
+      saveSvg(svg);
+      setExporting(null);
+      return;
+    }
+    if (!svg) return setExporting(null);
+    const content = pdfContent({
+      title: preset?.label ?? 'Custom link',
+      date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
+      url: window.location.href,
+      result,
+      fixes,
+      columns,
+      portMap,
+      endNames,
+      mapNames,
+    });
+    import('./savePdf')
+      .then(({ savePdf }) => savePdf(svg, content, `polarity-trace-${preset?.id ?? 'link'}.pdf`))
+      .catch((e) => console.error('PDF export failed', e))
+      .finally(() => setExporting(null));
+  }, [exporting]); // eslint-disable-line react-hooks/exhaustive-deps
+  const pdfButton = (
+    <button type="button" className={styles.toolButton} onClick={() => setExporting('pdf')} disabled={exporting === 'pdf'}>
+      <span aria-hidden="true">⤓</span> {exporting === 'pdf' ? 'Making PDF…' : 'Save PDF'}
+    </button>
+  );
   const saveButton = (
     <div className={styles.saveWrap}>
       <button
@@ -108,7 +135,7 @@ export function App() {
         onClick={vertical ? () => setSaveMenu((m) => !m) : save}
         aria-expanded={vertical ? saveMenu : undefined}
       >
-        <span aria-hidden="true">⤓</span> Save picture
+        <span aria-hidden="true">⤓</span> {vertical ? 'Save' : 'Save picture'}
       </button>
       {vertical && saveMenu && (
         <div className={styles.saveMenu} role="menu">
@@ -117,7 +144,7 @@ export function App() {
             role="menuitem"
             onClick={() => {
               setSaveMenu(false);
-              setSavingWide(true);
+              setExporting('wide');
             }}
           >
             <strong>Wide</strong> for email and slides
@@ -131,6 +158,16 @@ export function App() {
             }}
           >
             <strong>Tall</strong> as on this phone
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setSaveMenu(false);
+              setExporting('pdf');
+            }}
+          >
+            <strong>PDF</strong> one page, for printing
           </button>
         </div>
       )}
@@ -250,7 +287,12 @@ export function App() {
                 <li><span className={`${styles.key} ${styles.keyTx}`} aria-hidden="true" /> Optic Tx position</li>
                 <li><span className={styles.keyNum} aria-hidden="true">12</span> Small: MPO position · Bold: module port</li>
               </ul>
-              {!vertical && saveButton}
+              {!vertical && (
+                <div className={styles.saveGroup}>
+                  {saveButton}
+                  {pdfButton}
+                </div>
+              )}
             </div>
           </section>
 
@@ -270,8 +312,16 @@ export function App() {
         />
         {!vertical && <PartsCard columns={columns} />}
         {wideGeom && (
-          <div ref={exportRef} className={styles.offscreen} aria-hidden="true">
-            <Canvas geom={wideGeom} focus={null} onHover={() => {}} onPin={() => {}} stepHop={null} animate={false} />
+          <div ref={exportRef} className={styles.offscreen} aria-hidden="true" data-print={exporting === 'pdf' ? 'light' : undefined}>
+            <Canvas
+              geom={wideGeom}
+              focus={null}
+              onHover={() => {}}
+              onPin={() => {}}
+              stepHop={null}
+              animate={false}
+              sheet={exporting === 'pdf' ? 'export' : undefined}
+            />
           </div>
         )}
       </main>

@@ -1,4 +1,4 @@
-import type { CassetteDef, DuplexCordDef, Fibre, LinkResult, OpticDef, Polish } from '../engine';
+import type { CassetteDef, ChannelOutcome, DuplexCordDef, Fibre, LinkResult, OpticDef, Polish } from '../engine';
 import { METHOD_NAMES } from '../engine';
 import type { ResolvedCassetteEnd, ResolvedEnd, ResolvedLink } from '../engine/resolve';
 
@@ -12,6 +12,17 @@ export const VERDICT_TEXT: Record<LinkResult['verdict'], { icon: string; text: s
   BLOCK: { icon: '⛔', text: 'Cannot be built' },
 };
 
+export const SEVERITY_ORDER = { block: 0, fail: 1, warn: 2, note: 3 } as const;
+export const SEVERITY_WORD = { block: 'Blocked', fail: 'Fails', warn: 'Warning', note: 'Note' } as const;
+
+export const OUTCOME: Record<ChannelOutcome, { icon: string; text: string }> = {
+  'tx-to-rx': { icon: '✓', text: 'Tx reaches Rx' },
+  'tx-to-tx': { icon: '✕', text: 'Tx hits Tx' },
+  split: { icon: '!', text: 'Only one direction works' },
+  dark: { icon: '○', text: 'No light' },
+  mapped: { icon: '→', text: 'Lands on' },
+};
+
 /** With nothing plugged in at an end there is no polarity to pass or fail. */
 export function verdictText(result: LinkResult): { icon: string; text: string; map: boolean } {
   const map = result.portMap && (result.verdict === 'PASS' || result.verdict === 'WARN');
@@ -20,7 +31,7 @@ export function verdictText(result: LinkResult): { icon: string; text: string; m
 
 /** Colour of the verdict word in the result line. */
 export type Tone = 'good' | 'caution' | 'bad';
-const TONE: Partial<Record<LinkResult['verdict'], Tone>> = { PASS: 'good', WARN: 'caution', FAIL: 'bad', BLOCK: 'bad' };
+export const TONE: Partial<Record<LinkResult['verdict'], Tone>> = { PASS: 'good', WARN: 'caution', FAIL: 'bad', BLOCK: 'bad' };
 
 export const fibreWord = (f: Fibre) => (f === 'SMF' ? 'Singlemode' : 'Multimode');
 const genderWord = (g: 'M' | 'F') => (g === 'M' ? 'Male' : 'Female');

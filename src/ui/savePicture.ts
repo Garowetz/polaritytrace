@@ -26,7 +26,8 @@ const PROPS = [
 
 const SCALE = 2;
 
-export async function savePicture(svg: SVGSVGElement, background: string, footer: string, filename: string): Promise<void> {
+/** A copy of the drawing that carries its own styles, with animation and tap targets left out. */
+export function styledClone(svg: SVGSVGElement): SVGSVGElement {
   const clone = svg.cloneNode(true) as SVGSVGElement;
   const from = [svg, ...svg.querySelectorAll('*')];
   const to = [clone, ...clone.querySelectorAll('*')];
@@ -37,6 +38,11 @@ export async function savePicture(svg: SVGSVGElement, background: string, footer
     target.removeAttribute('class');
   });
   clone.querySelectorAll('[data-export="skip"]').forEach((el) => el.remove());
+  return clone;
+}
+
+export async function savePicture(svg: SVGSVGElement, background: string, footer: string, filename: string): Promise<void> {
+  const clone = styledClone(svg);
   // Parts kept off the page but always in the picture, such as the parts table.
   clone.querySelectorAll<SVGElement>('[data-export="show"]').forEach((el) => el.style.setProperty('display', 'inline'));
 

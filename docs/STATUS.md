@@ -4,7 +4,7 @@ Updated 2026-11-09. Read this first when starting a new session, then `CLAUDE.md
 
 ## Where we are
 
-Live site: https://garowetz.github.io/polaritytrace/ (branch `main`). Work happens on `dev`; `main` is updated only when the owner says "publish". Last publish: 2026-11-09 at c95b29f (main and dev are level).
+Live site: https://garowetz.github.io/polaritytrace/ (branch `main`). Work happens on `dev`; `main` is updated only when the owner says "publish". Last publish: 2026-11-09 at c95b29f. Since then on dev: PDF export (not published).
 
 | Step | What | State |
 |---|---|---|
@@ -12,7 +12,7 @@ Live site: https://garowetz.github.io/polaritytrace/ (branch `main`). Work happe
 | 2 | Polarity engine, component data, tests | Done |
 | 3 | Link canvas with light animation | Done |
 | 4 | Pickers, verdict panel with fixes | Done |
-| 5 | Link saved in the URL (done), visual rounds (done), PDF export (next) | **In progress** |
+| 5 | Link saved in the URL, visual rounds, PDF export | Done on dev (PDF not yet published) |
 | 6 | Polish: animation, mobile, accessibility | Later |
 
 ## What the site does today
@@ -25,9 +25,10 @@ Live site: https://garowetz.github.io/polaritytrace/ (branch `main`). Work happe
 - **Channel check:** a coloured verdict banner (TIA green works, TIA orange works with warnings, brand coral does not work), Channels / Port map tabs (the module-to-module port map is always available), issues and one-tap "Try this" fixes.
 - **Plugged into: None:** an end can be just the module; the result is then a port map rather than pass/fail.
 - **Save picture:** a PNG with the parts table, the result and the share link. On phones it asks Wide (the desktop drawing, made off screen; best for email and slides) or Tall (as on the phone).
+- **Save PDF:** one US Letter landscape page, always in light colours: header with the link's name and date, the wide drawing as vector graphics, then three columns: parts list; channel check (verdict pill, one row per channel, notes, Try this fixes, under review); module port map and a QR code plus the address, both clickable. Desktop has a Save PDF button beside Save picture; on phones the Save menu offers Wide, Tall or PDF. jsPDF, svg2pdf.js and qrcode-generator load only when a PDF is made. Content lives in `src/ui/pdfContent.ts` (tested), placement in `src/ui/savePdf.ts`. Text uses the PDF's built-in Helvetica, so `pdfSafe` swaps characters it lacks (→ becomes ->).
 - **Shareable links:** the URL always holds the link. A preset is `?p=method-a`; anything else is `?a=<end A>&t=<cable>&b=<end B>`, e.g. `?a=cas-a-12~lc-ab~inv&t=trunk-a-12~SMF~APC&b=cas-a-12~lc-aa`. Bad links fall back to the default with a note.
 - **Footer:** name and tagline, TIA basis, "check against the manufacturer's drawings" disclaimer, "© <year> Polarity Trace. All rights reserved." and the build date. No personal or company names (owner's decision).
-- **Tests:** 197 engine, data and UI-logic tests, all passing.
+- **Tests:** 201 engine, data and UI-logic tests, all passing.
 
 ## Decisions made
 
@@ -47,7 +48,7 @@ Live site: https://garowetz.github.io/polaritytrace/ (branch `main`). Work happe
 
 ## Next steps
 
-1. **PDF export (rest of Step 5):** a one-page PDF with the drawing as vector graphics, the parts list, the channel check and the share link. Do not start until the owner says go.
+1. **Owner review of the PDF**, then publish.
 2. **Custom domain:** get ready for polaritytrace.com (polaritytrace.ca as backup).
 3. **Polarity Maps parser:** draft plain-text part format in `docs/polarity-maps.md` ([Module], [Assembly], [Cord]); parser not built.
 4. **CS module wiring** once question 1 is answered.

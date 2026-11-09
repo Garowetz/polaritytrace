@@ -88,3 +88,21 @@
   --focus: var(--brand-mint);
   color-scheme: dark;
 }
+
+/* The drawing made for a PDF is always light, whatever the page theme. */
+[data-print='light'] {
+  --bg: var(--brand-white);
+  --surface: var(--brand-white);
+  --surface-raised: var(--brand-white);
+  --text: var(--brand-deep-blue);
+  --text-muted: color-mix(in srgb, var(--brand-deep-blue) 70%, white);
+  --accent: var(--brand-powder-blue);
+  --border: color-mix(in srgb, var(--brand-deep-blue) 14%, transparent);
+  --glow: var(--brand-powder-blue);
+  --pass: var(--brand-mint);
+  --pass-ink: var(--brand-deep-blue);
+  --fail-ink: var(--brand-white);
+  --fail: var(--brand-coral);
+  color: var(--text);
+  color-scheme: light;
+}
