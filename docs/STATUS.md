@@ -4,65 +4,61 @@ Updated 2026-11-09. Read this first when starting a new session, then `CLAUDE.md
 
 ## Where we are
 
-Live site: https://garowetz.github.io/polaritytrace/ (branch `main`). Work happens on `dev`; `main` is updated only when the owner says "publish".
+Live site: https://garowetz.github.io/polaritytrace/ (branch `main`). Work happens on `dev`; `main` is updated only when the owner says "publish". Last publish: 2026-11-09 at c95b29f (main and dev are level).
 
 | Step | What | State |
 |---|---|---|
 | 1 | Plan | Done |
 | 2 | Polarity engine, component data, tests | Done |
 | 3 | Link canvas with light animation | Done |
-| 4 | Pickers, verdict panel with fixes | Done (live) |
-| 5 | Link saved in the URL (done), PDF export (next) | **In progress** |
+| 4 | Pickers, verdict panel with fixes | Done |
+| 5 | Link saved in the URL (done), visual rounds (done), PDF export (next) | **In progress** |
 | 6 | Polish: animation, mobile, accessibility | Later |
 
-What the site does today:
-- **Pick parts:** End A, the MPO cable and End B are picked independently. Each end is a cassette (with patch cords, what it plugs into, and upside-down mounting) or an MPO optic.
-- **Tile cards:** each part opens a card of picture tiles. Tapping a part in the diagram opens its card.
-- **Examples menu:** holds the presets, including the "common mistake" ones.
-- **The diagram:** every fibre is drawn in TIA colours. Hover or tap a fibre to highlight its path, and Play steps through the link with captions. The layout runs horizontally on desktop and vertically on phones. There is also a lab (dark) mode.
-- **Verdict panel:** the overall verdict, a channel-by-channel table, the issues found, and one-tap "Try this" fixes.
-- **Shareable links:** the URL always holds the current link. A preset is `?p=method-a`; anything else is `?a=<end A>&t=<cable>&b=<end B>`, e.g. `?a=cas-a-12~lc-ab&t=trunk-a-12~SMF~APC&b=cas-u1-12~lc-aa`. A bad or unknown link falls back to the default with a short note.
-- **Logo:** the Polarity Trace mark (blue strands crossing, orange chevrons) sits in the header and is the browser-tab icon.
-- **Plugged into: None:** an end can be just the module. The result is then a port map ("End A port 1 arrives at End B port 1"), not a pass/fail.
-- **Numbering:** module fronts are numbered 1–12, one per connector (matches the TIA-598 colours and MPO positions). Equipment ports stay duplex 1–6 with Tx/Rx.
-- **Save picture:** saves the diagram as a PNG, with the parts list, the result and the share link written under it. The labels on the drawing carry the full spec (MPO size, fibre, polish, gender).
-- **Tests:** 195 engine, data and UI-logic tests, all passing.
+## What the site does today
+
+- **Build the link:** End A, the MPO cable and End B are picked independently. Each end is a module (with front polish, patch cords and what it plugs into) or an MPO optic. An Examples menu holds the presets, including the "common mistake" ones.
+- **Picker cards:** each part opens a card of picture tiles; tapping a part in the drawing opens its card. The module picker shows the fibre count as a bold badge and groups modules: Most used (Type A, Method B, U1, U1 8F), MPO-16 and MPO-24, then other and vendor-specific. "How it is mounted" (Right way up / Upside down) sits at the top of the module picker; the End card shows "· Upside down" when set.
+- **The drawing:** every fibre in TIA-598 colours; hover or tap a fibre or port number to follow its path. Horizontal on desktop, vertical and centred on phones, with the key notes either side. Short labels on the drawing (`12F · Singlemode`, `MPO-12 · 12F`, `LC to LC`); full specs live in the parts list. Opens in lab (dark) mode.
+- **Follow the light:** Play steps through the link with captions; ‹ › move one step. On phones the step box sits above the drawing, and a fixed-height floating bar appears at the bottom while stepping.
+- **Layouts (owner's pick):** desktop is look A (clean drawing, legend and Save in a toolbar underneath, a Parts list card on the page). Phones are look B (parts table drawn into the drawing like a title block, Play and Save on its top-right corner).
+- **Channel check:** a coloured verdict banner (TIA green works, TIA orange works with warnings, brand coral does not work), Channels / Port map tabs (the module-to-module port map is always available), issues and one-tap "Try this" fixes.
+- **Plugged into: None:** an end can be just the module; the result is then a port map rather than pass/fail.
+- **Save picture:** a PNG with the parts table, the result and the share link. On phones it asks Wide (the desktop drawing, made off screen; best for email and slides) or Tall (as on the phone).
+- **Shareable links:** the URL always holds the link. A preset is `?p=method-a`; anything else is `?a=<end A>&t=<cable>&b=<end B>`, e.g. `?a=cas-a-12~lc-ab~inv&t=trunk-a-12~SMF~APC&b=cas-a-12~lc-aa`. Bad links fall back to the default with a note.
+- **Footer:** name and tagline, TIA basis, "check against the manufacturer's drawings" disclaimer, "© <year> Polarity Trace. All rights reserved." and the build date. No personal or company names (owner's decision).
+- **Tests:** 197 engine, data and UI-logic tests, all passing.
 
 ## Decisions made
 
-- **Pickers:** pick End A, the cable and End B independently, not whole-link presets.
-- **Drag and drop:** skipped. Tapping a part does the same job and works on phones.
-- **Cassette drawing:** the cassette front draws A above B, so a straight cassette draws straight and the cord shows any flip.
-- **MPO-16 for 800G is in v1:** 800G DR8 and SR8, plus 400G SR8.
-- **Twin-MPO 800G optics:** out of v1.
-- **F-U1-24-A:** WARN rather than FAIL. Light lands on Rx at port 13−p; accepted.
+- Pick End A, the cable and End B independently, not whole-link presets. No drag and drop; tapping does the job and works on phones.
+- Module fronts are numbered per connector (1–12, matching TIA-598 colours and MPO positions); the CS module front count stays per port (8 × CS). Equipment ports stay duplex 1–6 with Tx/Rx.
+- Cassette labels show fibre count and SM/MM; connector types (LC, CS) belong on the cords.
+- MPO-16 for 800G is in v1 (800G DR8/SR8, 400G SR8). Twin-MPO 800G optics are out of v1.
+- F-U1-24-A is WARN rather than FAIL (light lands on Rx at port 13−p).
+- Verdict colours: TIA green, TIA orange and brand coral (owner-approved, noted in CLAUDE.md).
+- Copyright reads "Polarity Trace" only. The owner tried their own name and removed it; never add personal or company names to the repo.
 
 ## Open questions
 
-1. **8-port CS module (MPO-16) wiring.**
-   - The site currently assumes universal-style pairing: port p = MPO p and 17−p. With that, 800G DR8 breakout to 8 × 100G DR works through a Type B trunk with CS-to-LC A-to-A cords.
-   - The owner suggested assuming "1 to 1, 2 to 2". If that means straight wiring (port 1 = MPO 1 and 2), **DR8 breakout fails with every cord and either trunk**: a DR8 lane transmits on position k and receives on 17−k. Straight wiring only works module-to-module (Method A style).
-   - Waiting on the product drawing, or on the owner's reading of "1 to 1": MPO fibre to CS fibre, or lane to port. The straight-wiring change is drafted and kept aside (git stash "cs-16 straight wiring").
-2. **Research, for the separate research chat:**
-   - R3-O8 (Juniper)
-   - the R3-O2 U2 TIA statement
-   - MPO-24 adapter row swap
-   - confirming F-U1-24-A
+1. **8-port CS module (MPO-16) wiring.** The site assumes universal-style pairing (port p = MPO p and 17−p), so 800G DR8 breakout to 8 × 100G DR works through a Type B trunk with CS-to-LC A-to-A cords. If "1 to 1, 2 to 2" means straight wiring, DR8 breakout fails with every cord and trunk. Waiting on the product drawing or the owner's reading. The straight-wiring change is kept in git stash "cs-16 straight wiring".
+2. **Key up / key down.** The owner finds it confusing; it needs a plain explanation before it goes into Polarity Maps or onto the drawing (key bumps on the plugs wait on this).
+3. **Research, for the separate research chat:** R3-O8 (Juniper), the R3-O2 U2 TIA statement, MPO-24 adapter row swap, confirming F-U1-24-A.
 
-## Under discussion (owner feedback, 2026-10-28)
+## Next steps
 
-- **Sixth round (2026-11-09):** the owner picked layout B on phones and A on desktop, and the trial switch is gone. On a phone, Save picture asks Wide (the desktop drawing, made off screen) or Tall. The step box is now "Follow the light" with a line on what Play and the arrows do. The floating step bar has a fixed height, so its buttons never move; long step names wrap to two lines. The footer says "© Polarity Trace".
-- **Seventh round (2026-11-09):** footer has two columns, with "Updated" on the right of the copyright line; the "Nothing is stored" line is gone. The module picker groups modules (Most used: Type A, Method B, U1, U1 8F; then MPO-16/24; then other and vendor-specific) and shows the fibre count as a bold badge. "Mounted upside down" moved from the End card into the module picker as Right way up / Upside down; the End card shows "· Upside down" when set. Field "Part" is now "Module" (or "Optic"); the parts list says Module / Optic / Trunk. The verdict pill on the saved picture is sized for bold capitals, so "Works, with warnings" fits on phones.
-- **Fifth round (2026-11-09):** the area under the drawing comes in two versions, switched with `?look=b` or the "Layout trial" buttons in the footer (temporary; remove the loser and the buttons once the owner picks). **A:** legend chips and Save in one toolbar under the drawing, the parts list as its own card on the page (the table is still drawn into the saved picture). **B:** the parts table ruled into the drawing like a title block, with Play and Save on the drawing's top-right corner. Both: results section titled "Channel check" with a coloured verdict banner and Channels / Port map tabs (the port map is always available, module to module); cassette labels show fibre count and type (`12F · Singlemode`), cords show their connectors (`LC to LC`); footer with copyright ("© Polarity Trace"), TIA basis, disclaimer and build date. Phones: drawing centred with the key notes either side, smaller equipment label, step box above the drawing, and a floating step bar at the bottom while stepping.
-- **Fourth round (2026-11-09):** the site opens in lab (dark) mode; drawing labels are short (part name plus one fact: `12 × LC`, `MPO-12 · 12F`), and the full specs live only in the parts list underneath; bigger text on the wide drawing (it is scaled down to fit the page); phone cable numbers are bigger and alternate between two rows; the parts list is left-aligned on phones; the result's verdict word is green, orange or red.
-- **Third round (2026-11-09):** module port numbers sit inside the module, with the cord connectors right next to it (same gap as at the equipment); cable position numbers sit just above the line with a halo; front polish is tracked per end (default UPC, link token `fp:APC`); labels follow the Polarity Maps style with spaced hyphens (`Front: 12 × LC/UPC`, `MPO/APC - 12F - Down - Male`, `Ends: LC/UPC to LC/UPC`) in a larger font; the parts list under the drawing has End A on the left, End B on the right, the cable and result centred; the port map table shows a pill for each end (Module A | Module B).
-- **Second visual round done (2026-11-09):** duplex patch cords drawn as zip cords with a connector body on each fibre and a gap where they plug in (an A-to-A cord crosses where it splits at the equipment); fibres pack tighter into a smaller rear MPO; the cable is a jacket with an MPO plug at each end, narrower than the modules (no jacket colour, owner's choice); polish buttons are APC | UPC on singlemode and PC/UPC | APC on multimode (the old "Usual" option is gone); an (i) tip explains "Mounted upside down". Key bumps on the plugs wait until key up/down is settled.
+1. **PDF export (rest of Step 5):** a one-page PDF with the drawing as vector graphics, the parts list, the channel check and the share link. Do not start until the owner says go.
+2. **Custom domain:** get ready for polaritytrace.com (polaritytrace.ca as backup).
+3. **Polarity Maps parser:** draft plain-text part format in `docs/polarity-maps.md` ([Module], [Assembly], [Cord]); parser not built.
+4. **CS module wiring** once question 1 is answered.
+5. **Step 6 polish:** animation, mobile, accessibility.
 
-- **Visual update done (2026-10-28):** module outline holds its rear MPO; rear MPO and cable a little narrower than the module; key notes below each adapter ("Module key up" / "Cable key down", flipped when a cassette is mounted upside down); gaps where cords and the cable meet a module; card titles (End A / MPO cable / End B) are dark pill labels inside the cards. Unused MPO positions were already hollow dots.
-- **Fibres no light enters are now drawn** grey and dashed (e.g. Rx wired to Rx in Type A → Type A trunk → Universal). Blocked links with mismatched MPO sizes still draw nothing; the owner agrees that's right.
-- **Polarity Maps (plain-text part format):** draft spec in `docs/polarity-maps.md` ([Module], [Assembly], [Cord] blocks). Open: what key up / key down should mean in it. The owner finds key up/down confusing, so it needs a plain explanation first. The parser is not built yet.
+## History of visual rounds (all published 2026-11-09)
 
-## Next: Step 5 (rest)
-
-- **PDF export:** a one-page PDF with the diagram as vector graphics, the component list, the verdict table and the share link.
-- **Custom domain:** get ready for one later (polaritytrace.com).
+1. Module outline holds its rear MPO; key notes; gaps where cords and cable meet a module; card title pills; unlit fibres grey and dashed.
+2. Zip-cord patch cords; tighter fibres into a smaller rear MPO; cable jacket with MPO plugs; polish buttons per fibre type.
+3. Port numbers inside the module; per-end front polish (`fp:APC`); spec-style labels; parts list by end; two-sided port map.
+4. Lab mode by default; short labels on the drawing; bigger text; coloured verdict.
+5. Channel check with Port map tab; footer; phone drawing centred; floating step bar; layout trial A/B.
+6. B on phones, A on desktop; Wide/Tall save on phones; "Follow the light"; fixed floating bar.
+7. Module picker badges, grouping and mounting; footer relayout; verdict pill fits on phones.
