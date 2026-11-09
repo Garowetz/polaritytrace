@@ -1,6 +1,6 @@
 # Status
 
-Updated 2026-10-23. Read this first when starting a new session, then `CLAUDE.md` and `docs/polarity-reference.md`.
+Updated 2026-11-09. Read this first when starting a new session, then `CLAUDE.md` and `docs/polarity-reference.md`.
 
 ## Where we are
 
@@ -23,7 +23,10 @@ What the site does today:
 - **Verdict panel:** the overall verdict, a channel-by-channel table, the issues found, and one-tap "Try this" fixes.
 - **Shareable links:** the URL always holds the current link. A preset is `?p=method-a`; anything else is `?a=<end A>&t=<cable>&b=<end B>`, e.g. `?a=cas-a-12~lc-ab&t=trunk-a-12~SMF~APC&b=cas-u1-12~lc-aa`. A bad or unknown link falls back to the default with a short note.
 - **Logo:** the Polarity Trace mark (blue strands crossing, orange chevrons) sits in the header and is the browser-tab icon.
-- **Tests:** 185 engine, data and UI-logic tests, all passing.
+- **Plugged into: None:** an end can be just the module. The result is then a port map ("End A port 1 arrives at End B port 1"), not a pass/fail.
+- **Numbering:** module fronts are numbered 1–12, one per connector (matches the TIA-598 colours and MPO positions). Equipment ports stay duplex 1–6 with Tx/Rx.
+- **Save picture:** saves the diagram as a PNG, with the parts list, the result and the share link written under it. The labels on the drawing carry the full spec (MPO size, fibre, polish, gender).
+- **Tests:** 195 engine, data and UI-logic tests, all passing.
 
 ## Decisions made
 
@@ -47,6 +50,8 @@ What the site does today:
    - confirming F-U1-24-A
 
 ## Under discussion (owner feedback, 2026-10-28)
+
+- **Second visual round done (2026-11-09):** duplex patch cords drawn as zip cords with a connector body on each fibre and a gap where they plug in (an A-to-A cord crosses where it splits at the equipment); fibres pack tighter into a smaller rear MPO; the cable is a jacket with an MPO plug at each end, narrower than the modules (no jacket colour, owner's choice); polish buttons are APC | UPC on singlemode and PC/UPC | APC on multimode (the old "Usual" option is gone); an (i) tip explains "Mounted upside down". Key bumps on the plugs wait until key up/down is settled.
 
 - **Visual update done (2026-10-28):** module outline holds its rear MPO; rear MPO and cable a little narrower than the module; key notes below each adapter ("Module key up" / "Cable key down", flipped when a cassette is mounted upside down); gaps where cords and the cable meet a module; card titles (End A / MPO cable / End B) are dark pill labels inside the cards. Unused MPO positions were already hollow dots.
 - **Fibres no light enters are now drawn** grey and dashed (e.g. Rx wired to Rx in Type A → Type A trunk → Universal). Blocked links with mismatched MPO sizes still draw nothing; the owner agrees that's right.

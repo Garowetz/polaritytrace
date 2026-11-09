@@ -86,7 +86,7 @@ export function Canvas({ geom, focus, onHover, onPin, stepHop, animate, onBox }:
             >
               <path d={pathOf(f)} className={styles.casing} />
               <path d={pathOf(f)} className={styles.core} style={f.direction === 'unlit' ? undefined : { stroke: f.colour }} />
-              <path d={pathOf(f)} className={styles.hit} />
+              <path d={pathOf(f)} className={styles.hit} data-export="skip" />
             </g>
           );
         })}
@@ -100,7 +100,7 @@ export function Canvas({ geom, focus, onHover, onPin, stepHop, animate, onBox }:
       </g>
 
       {animate && (
-        <g className={styles.pulses} aria-hidden="true">
+        <g className={styles.pulses} aria-hidden="true" data-export="skip">
           {visible.map((f, i) =>
             f.direction !== 'unlit' && (!lit || lit.has(f.channelId)) ? (
               <circle key={`${f.id}:${stepHop ?? 'all'}`} r={4.5} className={styles.pulse} style={{ fill: f.colour }}>
@@ -124,6 +124,14 @@ export function Canvas({ geom, focus, onHover, onPin, stepHop, animate, onBox }:
       {geom.stations.map((s) => (
         <Station key={s.key} station={s} vertical={v} current={current} onHover={onHover} onPin={onPin} />
       ))}
+
+      <g className={styles.summary}>
+        {geom.summary.map((s, i) => (
+          <text key={i} x={s.x} y={s.y} className={s.strong ? styles.summaryStrong : undefined}>
+            {s.text}
+          </text>
+        ))}
+      </g>
 
       <g aria-hidden="true">
         {visible.map((f) => {

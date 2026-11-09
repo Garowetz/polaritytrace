@@ -254,6 +254,16 @@
   fill: var(--text);
 }
 
+.summary text {
+  font-size: 12px;
+  fill: var(--text-muted);
+}
+
+.summary .summaryStrong {
+  font-weight: 700;
+  fill: var(--text);
+}
+
 .frontLabel {
   font-family: var(--font-title);
   font-size: 11px;

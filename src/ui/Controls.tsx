@@ -1,12 +1,6 @@
 import { METHOD_NAMES, type ChannelOutcome, type Fix, type LinkConfig, type LinkResult, type Step } from '../engine';
 import styles from './Controls.module.css';
-
-const VERDICT_TEXT: Record<LinkResult['verdict'], { icon: string; text: string }> = {
-  PASS: { icon: '✓', text: 'Works' },
-  WARN: { icon: '!', text: 'Works, with warnings' },
-  FAIL: { icon: '✕', text: 'Does not work' },
-  BLOCK: { icon: '⛔', text: 'Cannot be built' },
-};
+import { VERDICT_TEXT, verdictText } from './describe';
 
 const SEVERITY_ORDER = { block: 0, fail: 1, warn: 2, note: 3 } as const;
 
@@ -28,9 +22,8 @@ interface VerdictProps {
 }
 
 export function VerdictStrip({ result, fixes, onApply, pinned, onPin }: VerdictProps) {
-  // With nothing plugged in at an end there is no polarity to pass or fail.
-  const map = result.portMap && (result.verdict === 'PASS' || result.verdict === 'WARN');
-  const v = map ? { icon: '→', text: 'Port map' } : VERDICT_TEXT[result.verdict];
+  const v = verdictText(result);
+  const map = v.map;
   const ok = result.channels.filter((c) => c.outcome === 'tx-to-rx').length;
   const issues = [...result.issues].sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]).slice(0, 4);
   return (

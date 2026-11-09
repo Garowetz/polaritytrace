@@ -1,6 +1,7 @@
 import { fibreColour } from '../data/colours';
 import { frontNumber, resolveLink, trace, type Catalog, type ChannelOutcome, type FibreTrace, type Hop, type LinkConfig, type LinkResult, type PolarityType, type Side } from '../engine';
 import type { ResolvedEnd } from '../engine/resolve';
+import { cassetteSpec, cordSpec, fibreWord, summaryLines, trunkSpec, wrap } from './describe';
 
 // Pure geometry: turns engine output into points and paths. No React here, and
 // no polarity decisions: every fibre path is exactly the engine's hop list.
@@ -84,6 +85,8 @@ export interface LinkGeom {
   boxes: BoxGeom[];
   connectors: ConnectorGeom[];
   fibres: FibreGeom[];
+  /** Parts list and result under the drawing, one entry per line. */
+  summary: { x: number; y: number; text: string; strong: boolean }[];
 }
 
 const PITCH = 22;
@@ -127,7 +130,6 @@ export function adapterKeys(adapter: PolarityType, inverted: boolean): { module:
 
 const slotKey = (h: Hop) => (h.at === 'equipment' || h.at === 'front' ? `${h.port}${h.pos}` : `${h.pos}`);
 export const slotId = (h: Hop) => `${h.side}:${h.at}|${slotKey(h)}`;
-const footprintLabel = (positions: number, lit: number) => `MPO-${positions} · ${lit}F`;
 
 interface RawSlot {
   key: string;
@@ -221,13 +223,13 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
           d0: TRUNK_OVERHANG + GAP,
           d1: dFront + 10,
           label: end.def.label,
-          sub: `${footprintLabel(end.def.positions, end.def.litPositions.length)} → ${ports.length} × ${end.def.frontConnector}`,
+          sub: cassetteSpec(end),
           underReview: !end.def.verified,
         },
       );
       if (!end.bare) {
         bx.push(
-          { kind: 'cord', d0: dFront + 10 + GAP, d1: dEq - 10, label: cord.label, sub: 'patch cords', underReview: !cord.verified },
+          { kind: 'cord', d0: dFront + 10 + GAP, d1: dEq - 10, label: cord.label, sub: cordSpec(cord), underReview: !cord.verified },
           {
             kind: 'equipment',
             d0: dEq - 10,
@@ -243,7 +245,8 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
       const all = Array.from({ length: n }, (_, i) => i + 1);
       const dOpt = ALONG.adapter + 20;
       st.push({ kind: 'optic', dist: dOpt, slots: positionSlots(n, all, (p) => opticRole(end, p)), labelOut: true });
-      bx.push({ kind: 'optic', d0: dOpt - 10, d1: dOpt + 86, label: end.def.label, sub: `${end.def.connector} · ${end.def.fibre ?? ''}`.trim(), underReview: !end.def.verified });
+      const sub = [end.def.connector, end.def.fibre && fibreWord(end.def.fibre), end.def.polish].filter(Boolean).join(' · ');
+      bx.push({ kind: 'optic', d0: dOpt - 10, d1: dOpt + 86, label: end.def.label, sub, underReview: !end.def.verified });
     }
     const reach = Math.max(...bx.map((b) => b.d1));
     return { st, bx, reach };
@@ -269,7 +272,7 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
   raw.push({ key: 'right:trunk', along: trunkR, slots: trunkSlots(), labelDir: -1, kind: 'trunk' });
   // The cable: an MPO plug at each end and the jacket between them.
   boxSpecs.push(
-    { kind: 'trunk', a0: trunkL + PLUG, a1: trunkR - PLUG, label: trunk.label, sub: footprintLabel(trunk.positions, trunk.litPositions.length), underReview: !trunk.verified },
+    { kind: 'trunk', a0: trunkL + PLUG, a1: trunkR - PLUG, label: trunk.label, sub: trunkSpec(link), underReview: !trunk.verified },
     { kind: 'plug', a0: trunkL - TRUNK_OVERHANG, a1: trunkL + PLUG, label: trunk.label, underReview: !trunk.verified },
     { kind: 'plug', a0: trunkR + TRUNK_OVERHANG, a1: trunkR - PLUG, label: trunk.label, underReview: !trunk.verified },
   );
@@ -474,8 +477,20 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
   }
 
   const width = orientation === 'horizontal' ? total : GUTTER * 2 + extent + NOTE_ROOM;
-  const height = orientation === 'horizontal' ? TOP + extent + 56 : total - 2 * ALONG.margin + 140;
-  return { orientation, width, height, stations, boxes, connectors, fibres };
+  const drawn = orientation === 'horizontal' ? TOP + extent + 56 : total - 2 * ALONG.margin + 140;
+
+  // 5. The parts list and result, so a copied picture explains itself.
+  const LINE = 17;
+  const perLine = orientation === 'horizontal' ? 220 : Math.floor((width - 2 * GUTTER) / 6.2);
+  const summary: LinkGeom['summary'] = [];
+  let y = drawn + 18;
+  summaryLines(link, result).forEach((text, i, all) => {
+    for (const line of wrap(text, perLine)) {
+      summary.push({ x: GUTTER, y, text: line, strong: i === all.length - 1 });
+      y += LINE;
+    }
+  });
+  return { orientation, width, height: y + 6, stations, boxes, connectors, fibres, summary };
 }
 
 /** Smooth path through points: each hop is an S-curve along the link. */

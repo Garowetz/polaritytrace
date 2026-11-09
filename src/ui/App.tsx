@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { catalog } from '../data/catalog';
 import { DEFAULT_PRESET, presets } from '../data/presets';
 import { evaluateLink, suggestFixes, UnknownComponentError, walkSteps, type LinkConfig } from '../engine';
@@ -9,6 +9,7 @@ import type { PickerTarget } from './choices';
 import { StepControls, VerdictStrip } from './Controls';
 import { layoutLink } from './layout';
 import { Logo } from './Logo';
+import { savePicture } from './savePicture';
 import { asksForLink, decodeLink, encodeLink } from './urlState';
 import { useMediaQuery } from './useMediaQuery';
 
@@ -55,6 +56,13 @@ export function App() {
   const steps = useMemo(() => walkSteps(config, catalog, result), [config, result]);
   const fixes = useMemo(() => (result.verdict === 'PASS' ? [] : suggestFixes(config, catalog)), [config, result]);
   const geom = useMemo(() => layoutLink(config, result, catalog, vertical ? 'vertical' : 'horizontal'), [config, result, vertical]);
+  const stageRef = useRef<HTMLElement>(null);
+  const save = () => {
+    const stage = stageRef.current;
+    const svg = stage?.querySelector('svg');
+    if (!stage || !svg) return;
+    void savePicture(svg, getComputedStyle(stage).backgroundColor, `Polarity Trace · ${window.location.href}`, 'polarity-trace.png');
+  };
 
   // Play walks the steps on a timer, then returns to the whole link.
   useEffect(() => {
@@ -116,7 +124,7 @@ export function App() {
         )}
         {preset && <p className={styles.blurb}>{preset.blurb}</p>}
 
-        <section className={styles.stage} aria-label="Link diagram">
+        <section className={styles.stage} aria-label="Link diagram" ref={stageRef}>
           <div className={styles.scroller}>
             <Canvas
               key={`${configKey}-${geom.orientation}`}
@@ -129,13 +137,18 @@ export function App() {
               onBox={(b) => setPicker(pickerForBox(b.kind, b.side))}
             />
           </div>
-          <p className={styles.focusLine} aria-live="polite">
-            {focusedChannel
-              ? `${focusedChannel.label}: ${focusedChannel.message}`
-              : focus?.kind === 'channel' && focus.id.startsWith('unlit:')
-                ? geom.fibres.find((f) => f.id === focus.id)?.label
-                : 'Hover or tap a fibre or connector position to follow its path.'}
-          </p>
+          <div className={styles.stageBar}>
+            <p className={styles.focusLine} aria-live="polite">
+              {focusedChannel
+                ? `${focusedChannel.label}: ${focusedChannel.message}`
+                : focus?.kind === 'channel' && focus.id.startsWith('unlit:')
+                  ? geom.fibres.find((f) => f.id === focus.id)?.label
+                  : 'Hover or tap a fibre or connector position to follow its path.'}
+            </p>
+            <button type="button" className={styles.saveButton} onClick={save}>
+              Save picture
+            </button>
+          </div>
           <ul className={styles.legend} aria-label="Legend">
             <li><span className={`${styles.key} ${styles.keyOk}`} aria-hidden="true" /> Light lands on a receiver</li>
             <li><span className={`${styles.key} ${styles.keyBad}`} aria-hidden="true">✕</span> Light lands on a transmitter</li>
