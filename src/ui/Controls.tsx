@@ -173,14 +173,19 @@ interface StepProps {
 
 export const StepControls = forwardRef<HTMLElement, StepProps>(function StepControls({ steps, index, playing, onIndex, onPlay, floating }, ref) {
   const last = steps.length - 1;
-  const shown = steps[index ?? last];
-  const pos = index ?? last;
+  const shown = index === null ? null : steps[index];
   return (
     <section ref={ref} className={`${styles.stepper} ${floating ? styles.floating : ''}`} aria-label={floating ? 'Step controls' : 'Step through the link'}>
       <div className={styles.caption} aria-live="polite">
-        <span className={styles.stepCount}>{index === null ? 'Whole link' : `Step ${pos + 1} of ${steps.length}`}</span>
-        <strong className={styles.stepTitle}>{shown?.title}</strong>
-        {!floating && <span className={styles.stepText}>{shown?.text}</span>}
+        <span className={styles.stepCount}>
+          {floating && shown ? `Step ${index! + 1} of ${steps.length}` : `Follow the light${shown ? ` · Step ${index! + 1} of ${steps.length}` : ''}`}
+        </span>
+        <strong className={styles.stepTitle}>{shown ? shown.title : 'Press ▶ to trace the light one step at a time'}</strong>
+        {!floating && (
+          <span className={styles.stepText}>
+            {shown ? shown.text : 'It travels from each transmitter through the cords, modules and cable to where it lands. Use ‹ › to move a step yourself.'}
+          </span>
+        )}
       </div>
       <div className={styles.buttons}>
         <button type="button" onClick={() => onIndex(Math.max(0, (index ?? 1) - 1))} disabled={index === 0} aria-label="Previous step">

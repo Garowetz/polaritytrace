@@ -8,7 +8,7 @@ import { Builder, pickerForBox, presetFor } from './Builder';
 import type { PickerTarget } from './choices';
 import { StepControls, VerdictStrip } from './Controls';
 import { partsColumns } from './describe';
-import { Footer, type Look } from './Footer';
+import { Footer } from './Footer';
 import { layoutLink } from './layout';
 import { Logo } from './Logo';
 import { PartsCard } from './Parts';
@@ -20,8 +20,6 @@ type Theme = 'light' | 'dark';
 
 const STEP_MS = 2200;
 
-// Layout trial: ?look=b shows the second design of the area under the drawing.
-const initialLook = (): Look => (new URLSearchParams(window.location.search).get('look') === 'b' ? 'b' : 'a');
 
 /** True while the element is at least partly on screen. */
 function useOnScreen(ref: React.RefObject<HTMLElement | null>): boolean {
@@ -51,7 +49,9 @@ export function App() {
   const [step, setStep] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
   const [picker, setPicker] = useState<PickerTarget | null>(null);
-  const [look, setLook] = useState<Look>(initialLook);
+  // Phones save the tall drawing they show, or the wide one drawn just for the picture.
+  const [saveMenu, setSaveMenu] = useState(false);
+  const [savingWide, setSavingWide] = useState(false);
 
   const vertical = useMediaQuery('(max-width: 760px)');
   const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
@@ -62,11 +62,9 @@ export function App() {
 
   // Keep the URL in step with the link, without adding browser history.
   useEffect(() => {
-    const q = encodeLink(config, presets);
-    const trial = look === 'b' ? `${q ? '&' : '?'}look=b` : '';
-    const url = window.location.pathname + q + trial + window.location.hash;
+    const url = window.location.pathname + encodeLink(config, presets) + window.location.hash;
     window.history.replaceState(null, '', url);
-  }, [config, look]);
+  }, [config]);
 
   const preset = presetFor(presets, config);
   const configKey = JSON.stringify(config);
@@ -88,12 +86,56 @@ export function App() {
   };
   const endNames = { left: bare('left') ? 'Module A' : 'End A', right: bare('right') ? 'Module B' : 'End B' };
   const mapNames = { left: config.left.kind === 'cassette' ? 'Module A' : 'End A', right: config.right.kind === 'cassette' ? 'Module B' : 'End B' };
-  const save = () => {
+  const saveSvg = (svg: SVGSVGElement | null | undefined) => {
     const stage = stageRef.current;
-    const svg = stage?.querySelector('svg');
     if (!stage || !svg) return;
     void savePicture(svg, getComputedStyle(stage).backgroundColor, `Polarity Trace · ${window.location.href}`, 'polarity-trace.png');
   };
+  const save = () => saveSvg(stageRef.current?.querySelector('svg'));
+  // The wide picture on a phone: drawn off screen, saved, then removed.
+  const exportRef = useRef<HTMLDivElement>(null);
+  const wideGeom = useMemo(() => (savingWide ? layoutLink(config, result, catalog, 'horizontal') : null), [savingWide, config, result]);
+  useEffect(() => {
+    if (!savingWide) return;
+    saveSvg(exportRef.current?.querySelector('svg'));
+    setSavingWide(false);
+  }, [savingWide]); // eslint-disable-line react-hooks/exhaustive-deps
+  const saveButton = (
+    <div className={styles.saveWrap}>
+      <button
+        type="button"
+        className={styles.toolButton}
+        onClick={vertical ? () => setSaveMenu((m) => !m) : save}
+        aria-expanded={vertical ? saveMenu : undefined}
+      >
+        <span aria-hidden="true">⤓</span> Save picture
+      </button>
+      {vertical && saveMenu && (
+        <div className={styles.saveMenu} role="menu">
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setSaveMenu(false);
+              setSavingWide(true);
+            }}
+          >
+            <strong>Wide</strong> for email and slides
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setSaveMenu(false);
+              save();
+            }}
+          >
+            <strong>Tall</strong> as on this phone
+          </button>
+        </div>
+      )}
+    </div>
+  );
 
   // Play walks the steps on a timer, then returns to the whole link.
   useEffect(() => {
@@ -170,15 +212,15 @@ export function App() {
         {preset && <p className={styles.blurb}>{preset.blurb}</p>}
 
         <div className={styles.viewer}>
-          <section className={`${styles.stage} ${look === 'b' ? styles.stageB : ''}`} aria-label="Link diagram" ref={stageRef}>
-            {look === 'b' && (
+          {/* Phones show the parts table in the drawing, with Play and Save on its
+              corner; desktops keep the drawing clean and list the parts below. */}
+          <section className={`${styles.stage} ${vertical ? styles.stageB : ''}`} aria-label="Link diagram" ref={stageRef}>
+            {vertical && (
               <div className={styles.overlay}>
                 <button type="button" className={styles.toolButton} onClick={() => stepControls.onPlay(!playing)} aria-label={playing ? 'Pause' : 'Play the light step by step'}>
                   <span aria-hidden="true">{playing ? '❚❚' : '▶'}</span> {playing ? 'Pause' : 'Play'}
                 </button>
-                <button type="button" className={styles.toolButton} onClick={save}>
-                  <span aria-hidden="true">⤓</span> Save picture
-                </button>
+                {saveButton}
               </div>
             )}
             <div className={styles.scroller}>
@@ -191,7 +233,7 @@ export function App() {
                 stepHop={stepHop}
                 animate={!reducedMotion}
                 onBox={(b) => setPicker(pickerForBox(b.kind, b.side))}
-                sheet={look === 'a' ? 'export' : 'show'}
+                sheet={vertical ? 'show' : 'export'}
               />
             </div>
             <p className={styles.focusLine} aria-live="polite">
@@ -208,11 +250,7 @@ export function App() {
                 <li><span className={`${styles.key} ${styles.keyTx}`} aria-hidden="true" /> Optic Tx position</li>
                 <li><span className={styles.keyNum} aria-hidden="true">12</span> Small: MPO position · Bold: module port</li>
               </ul>
-              {look === 'a' && (
-                <button type="button" className={styles.toolButton} onClick={save}>
-                  <span aria-hidden="true">⤓</span> Save picture
-                </button>
-              )}
+              {!vertical && saveButton}
             </div>
           </section>
 
@@ -230,9 +268,14 @@ export function App() {
           mapNames={mapNames}
           onPin={(id) => setPinned((cur) => (cur?.kind === 'channel' && cur.id === id ? null : { kind: 'channel', id }))}
         />
-        {look === 'a' && <PartsCard columns={columns} />}
+        {!vertical && <PartsCard columns={columns} />}
+        {wideGeom && (
+          <div ref={exportRef} className={styles.offscreen} aria-hidden="true">
+            <Canvas geom={wideGeom} focus={null} onHover={() => {}} onPin={() => {}} stepHop={null} animate={false} />
+          </div>
+        )}
       </main>
-      <Footer look={look} onLook={setLook} />
+      <Footer />
     </div>
   );
 }

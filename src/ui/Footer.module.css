@@ -34,29 +34,6 @@
   border-top: 1px solid var(--border);
 }
 
-.look {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-}
-
-.look button {
-  min-width: 32px;
-  min-height: 28px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--text);
-  font: inherit;
-  cursor: pointer;
-}
-
-.look button[aria-pressed='true'] {
-  background: var(--text);
-  color: var(--bg);
-  font-weight: 700;
-}
-
 @media (max-width: 760px) {
   .cols {
     grid-template-columns: 1fr;

@@ -1,9 +1,7 @@
 import styles from './Footer.module.css';
 
-export type Look = 'a' | 'b';
-
 /** Plain site footer: who made it, what it is based on, and a word of caution. */
-export function Footer({ look, onLook }: { look: Look; onLook: (l: Look) => void }) {
+export function Footer() {
   return (
     <footer className={styles.footer}>
       <div className={styles.cols}>
@@ -22,15 +20,6 @@ export function Footer({ look, onLook }: { look: Look; onLook: (l: Look) => void
       </div>
       <div className={styles.bottom}>
         <p>© {new Date().getFullYear()} Polarity Trace. All rights reserved.</p>
-        {/* Trial only: switch between the two page layouts being compared. */}
-        <p className={styles.look}>
-          Layout trial:{' '}
-          {(['a', 'b'] as const).map((l) => (
-            <button key={l} type="button" aria-pressed={look === l} onClick={() => onLook(l)}>
-              {l.toUpperCase()}
-            </button>
-          ))}
-        </p>
       </div>
     </footer>
   );
