@@ -4,7 +4,7 @@ Updated 2026-11-10. Read this first when starting a new session, then `CLAUDE.md
 
 ## Where we are
 
-Live site: https://garowetz.github.io/polaritytrace/ (branch `main`). Work happens on `dev`; `main` is updated only when the owner says "publish". Last publish: 2026-11-09 at c95b29f. Since then on dev (not published): PDF export; parts review page; A-to-A as a note; Type B naming.
+Live site: https://garowetz.github.io/polaritytrace/ (branch `main`). Work happens on `dev`; `main` is updated only when the owner says "publish". Last publish: 2026-11-10 at 8734090 (PDF export, parts review page, A-to-A as a note, Type B naming).
 
 | Step | What | State |
 |---|---|---|
@@ -12,7 +12,7 @@ Live site: https://garowetz.github.io/polaritytrace/ (branch `main`). Work happe
 | 2 | Polarity engine, component data, tests | Done |
 | 3 | Link canvas with light animation | Done |
 | 4 | Pickers, verdict panel with fixes | Done |
-| 5 | Link saved in the URL, visual rounds, PDF export | Done on dev (PDF not yet published) |
+| 5 | Link saved in the URL, visual rounds, PDF export | Done |
 | 6 | Polish: animation, mobile, accessibility | Later |
 
 ## What the site does today
@@ -51,7 +51,7 @@ Live site: https://garowetz.github.io/polaritytrace/ (branch `main`). Work happe
 
 ## Next steps
 
-1. **Owner review** of the PDF and the parts list (answer the review points by number), then publish.
+1. **Owner review** of the parts list: answer the review points by number. The footer link stays until the owner asks to remove it.
 2. **Custom domain:** get ready for polaritytrace.com (polaritytrace.ca as backup).
 3. **Polarity Maps parser:** draft plain-text part format in `docs/polarity-maps.md` ([Module], [Assembly], [Cord]); parser not built.
 4. **CS module wiring** once question 1 is answered.
