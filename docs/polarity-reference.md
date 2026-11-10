@@ -190,6 +190,8 @@ Notation: R = optic receptacle position; P = trunk plug position; I = cassette i
 
 In every PASS case lane k → front port k, and ports 5–6 are dark for 8-fibre SR4. U2 rows are also BLOCK whenever the link is APC (§3.1).
 
+**Owner decision (2026-11-10):** the site shows "non-standard cord" as a NOTE, not a WARN. Rolling the cords (A-to-A) at one end is expected practice with the owner's system, so these rows read PASS with a note. The light trace above is unchanged.
+
 **Comparison with published guidance.**
 - Fluke Networks: "Method U2 also supports direct breakout applications … Using Method U1 for direct breakout applications requires non-standard A-A duplex patch cords."
 - CommScope (competitor): "Type-U2 fan-out cables and cassettes offer the additional benefit of supporting direct connections in breakout applications".

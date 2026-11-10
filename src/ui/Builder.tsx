@@ -90,7 +90,7 @@ export function Builder({ catalog, config, onChange, presets, activePreset, pick
             { value: 'inverted', label: 'Upside down' },
           ]}
           onChange={(m) => onChange({ ...config, [side]: { ...end, mount: m === 'inverted' ? 'inverted' : undefined } })}
-          hint="Upside down flips the module over in the panel: its MPO key faces the other way and its port numbers run in reverse. Method B needs one end flipped."
+          hint="Upside down flips the module over in the panel: its MPO key faces the other way and its port numbers run in reverse. Most modules are mounted the right way up."
         />
       </div>
     );
@@ -141,9 +141,9 @@ export function Builder({ catalog, config, onChange, presets, activePreset, pick
 
 // The module picker, most used first.
 const CASSETTE_GROUPS: { title: string; ids: string[] }[] = [
-  { title: 'Most used', ids: ['cas-a-12', 'cas-b-12', 'cas-u1-12', 'cas-u1-8'] },
+  { title: 'Most used', ids: ['cas-a-12', 'cas-u1-12', 'cas-u1-8'] },
   { title: 'MPO-16 and MPO-24 modules', ids: ['cas-u1-16', 'cas-u1-16-cs', 'cas-u1-24', 'cas-u1-24-16f', 'cas-a-24'] },
-  { title: 'Other and vendor-specific', ids: ['cas-u2-12', 'cas-b2-12', 'cas-bn-12', 'cas-af-12'] },
+  { title: 'Other and vendor-specific', ids: ['cas-b-12', 'cas-u2-12', 'cas-b2-12', 'cas-bn-12', 'cas-af-12'] },
 ];
 const rank = (ids: string[], id: string) => (ids.includes(id) ? ids.indexOf(id) : ids.length);
 

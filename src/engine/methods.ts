@@ -60,7 +60,8 @@ export function methodIssues(link: ResolvedLink, mode: Mode, method: MethodId | 
           ? ' Through a trunk, U1 and U2 cassettes both need A-to-A cords for breakout.'
           : '';
       issues.push({
-        severity: 'warn',
+        // Owner's call: A-to-A at one end is normal practice, so a note, not a warning.
+        severity: 'note',
         code: 'non-standard-cord',
         side,
         message: `Non-standard A-to-A cords at ${sideName(side)}. Label them clearly so they are not swapped for standard cords.${why}`,

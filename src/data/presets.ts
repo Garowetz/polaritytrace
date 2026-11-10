@@ -131,7 +131,7 @@ export const presets: readonly Preset[] = [
       cable: { trunk: 'trunk-b-12', ...MM },
       right: cassetteEnd('cas-u1-12', 'lc-aa', { equipment: 'sfp28-25g-sr', patchedPorts: [1, 2, 3, 4] }),
     },
-    expect: 'WARN',
+    expect: 'PASS',
     underReview: true,
   },
   {
@@ -156,7 +156,7 @@ export const presets: readonly Preset[] = [
       cable: { trunk: 'trunk-b-12', ...SM },
       right: cassetteEnd('cas-u1-12', 'lc-aa', { equipment: 'qsfp28-100g-dr', patchedPorts: [1, 2, 3, 4] }),
     },
-    expect: 'WARN',
+    expect: 'PASS',
   },
   {
     id: '800g-dr8-direct',
@@ -179,7 +179,7 @@ export const presets: readonly Preset[] = [
       cable: { trunk: 'trunk-b-16', ...SM },
       right: cassetteEnd('cas-u1-16-cs', 'cs-lc-aa', { equipment: 'qsfp28-100g-dr' }),
     },
-    expect: 'WARN',
+    expect: 'PASS',
     underReview: true,
   },
   {

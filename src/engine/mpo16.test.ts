@@ -38,10 +38,10 @@ describe('800G DR8 on MPO-16', () => {
     }
   });
 
-  it('same with A-to-A cords → PASS + WARN, lane k ↔ port k, all 8 ports lit', () => {
+  it('same with A-to-A cords → PASS (A-to-A is a note), lane k ↔ port k, all 8 ports lit', () => {
     for (const cfg of [link(DR8, B16, module('cs-lc-aa')), link(module('cs-lc-aa'), B16, DR8)]) {
       const r = run(cfg);
-      expect(r.verdict).toBe('WARN');
+      expect(r.verdict).toBe('PASS');
       expect(new Set(outcomes(r))).toEqual(new Set(['tx-to-rx']));
       expect(r.channels.map((c) => c.farPort)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
       expect(r.darkPorts).toEqual([]);

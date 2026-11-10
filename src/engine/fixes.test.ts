@@ -21,7 +21,7 @@ describe('fix suggestions', () => {
       catalog,
     );
     expect(fixes[0].message).toBe('Swap the End B patch cords from A-to-B (standard) to A-to-A.');
-    expect(fixes[0].verdict).toBe('WARN');
+    expect(fixes[0].verdict).toBe('PASS');
   });
 
   it('F-APC-2 (U2 on APC): suggests universal U1 cassettes, which work on APC', () => {

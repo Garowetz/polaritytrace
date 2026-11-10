@@ -16,7 +16,12 @@ export function Footer() {
       </div>
       <div className={styles.bottom}>
         <p>© {new Date().getFullYear()} Polarity Trace. All rights reserved.</p>
-        <p>Updated {__BUILD_DATE__}</p>
+        <p>
+          Updated {__BUILD_DATE__} ·{' '}
+          <a className={styles.quiet} href={`${import.meta.env.BASE_URL}parts.html`}>
+            Parts list
+          </a>
+        </p>
       </div>
     </footer>
   );

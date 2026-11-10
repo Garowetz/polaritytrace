@@ -23,10 +23,10 @@ describe('§3-1 breakout: SR4 → trunk → cassette → duplex cord → duplex 
     }
   });
 
-  it('BO-02: Type B trunk, U1, A-to-A → PASS + WARN (non-standard cord)', () => {
+  it('BO-02: Type B trunk, U1, A-to-A → PASS (note: non-standard cord)', () => {
     for (const cfg of both(SR4, B, u('cas-u1-12', 'lc-aa'))) {
       const r = run(cfg);
-      expect(r.verdict).toBe('WARN');
+      expect(r.verdict).toBe('PASS');
       expect(new Set(outcomes(r))).toEqual(new Set(['tx-to-rx']));
       expect(codes(r)).toContain('non-standard-cord');
       expect(codes(r)).not.toContain('mixed-method');
@@ -41,10 +41,10 @@ describe('§3-1 breakout: SR4 → trunk → cassette → duplex cord → duplex 
     }
   });
 
-  it('BO-04: Type B trunk, U2, A-to-A → PASS + WARN', () => {
+  it('BO-04: Type B trunk, U2, A-to-A → PASS (note: non-standard cord)', () => {
     for (const cfg of both(SR4, B, u('cas-u2-12', 'lc-aa'))) {
       const r = run(cfg);
-      expect(r.verdict).toBe('WARN');
+      expect(r.verdict).toBe('PASS');
       expect(new Set(outcomes(r))).toEqual(new Set(['tx-to-rx']));
       expect(codes(r)).toContain('non-standard-cord');
     }

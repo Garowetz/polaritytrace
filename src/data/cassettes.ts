@@ -50,7 +50,7 @@ export const cassettes: readonly CassetteDef[] = [
   {
     kind: 'cassette',
     id: 'cas-b-12',
-    label: 'Method B cassette',
+    label: 'Type B cassette',
     blurb: 'Straight transition with a key-up/key-up rear adapter. One end is mounted upside down.',
     learnMore:
       'TIA Method B uses the same cassette at both ends with one turned over. ' +
@@ -69,10 +69,10 @@ export const cassettes: readonly CassetteDef[] = [
   {
     kind: 'cassette',
     id: 'cas-b2-12',
-    label: 'Method B far-end cassette (B2)',
+    label: 'Type B far-end cassette (B2)',
     blurb: 'Reverses the ports but keeps each pair in order: LC 1–12 = MPO 11,12,9,10 … 1,2.',
     learnMore:
-      'Paired with a standard Method B cassette (B1) at the near end, so port 1 arrives at port 1 ' +
+      'Paired with a standard Type B cassette (B1) at the near end, so port 1 arrives at port 1 ' +
       'without turning a cassette over. Only one published source gives the numbers.',
     footprint: 'MPO-12',
     positions: 12,

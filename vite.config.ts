@@ -7,6 +7,12 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   base: process.env.BASE_PATH ?? '/',
   plugins: [react()],
+  // Two pages: the site, and the parts list for review (linked from the footer).
+  build: {
+    rollupOptions: {
+      input: { main: 'index.html', parts: 'parts.html' },
+    },
+  },
   define: {
     __BUILD_DATE__: JSON.stringify(new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })),
   },

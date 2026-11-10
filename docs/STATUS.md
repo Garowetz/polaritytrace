@@ -1,10 +1,10 @@
 # Status
 
-Updated 2026-11-09. Read this first when starting a new session, then `CLAUDE.md` and `docs/polarity-reference.md`.
+Updated 2026-11-10. Read this first when starting a new session, then `CLAUDE.md` and `docs/polarity-reference.md`.
 
 ## Where we are
 
-Live site: https://garowetz.github.io/polaritytrace/ (branch `main`). Work happens on `dev`; `main` is updated only when the owner says "publish". Last publish: 2026-11-09 at c95b29f. Since then on dev: PDF export (not published).
+Live site: https://garowetz.github.io/polaritytrace/ (branch `main`). Work happens on `dev`; `main` is updated only when the owner says "publish". Last publish: 2026-11-09 at c95b29f. Since then on dev (not published): PDF export; parts review page; A-to-A as a note; Type B naming.
 
 | Step | What | State |
 |---|---|---|
@@ -18,7 +18,7 @@ Live site: https://garowetz.github.io/polaritytrace/ (branch `main`). Work happe
 ## What the site does today
 
 - **Build the link:** End A, the MPO cable and End B are picked independently. Each end is a module (with front polish, patch cords and what it plugs into) or an MPO optic. An Examples menu holds the presets, including the "common mistake" ones.
-- **Picker cards:** each part opens a card of picture tiles; tapping a part in the drawing opens its card. The module picker shows the fibre count as a bold badge and groups modules: Most used (Type A, Method B, U1, U1 8F), MPO-16 and MPO-24, then other and vendor-specific. "How it is mounted" (Right way up / Upside down) sits at the top of the module picker; the End card shows "· Upside down" when set.
+- **Picker cards:** each part opens a card of picture tiles; tapping a part in the drawing opens its card. The module picker shows the fibre count as a bold badge and groups modules: Most used (Type A, U1, U1 8F), MPO-16 and MPO-24, then other and vendor-specific (Type B cassette is there). "How it is mounted" (Right way up / Upside down) sits at the top of the module picker; the End card shows "· Upside down" when set.
 - **The drawing:** every fibre in TIA-598 colours; hover or tap a fibre or port number to follow its path. Horizontal on desktop, vertical and centred on phones, with the key notes either side. Short labels on the drawing (`12F · Singlemode`, `MPO-12 · 12F`, `LC to LC`); full specs live in the parts list. Opens in lab (dark) mode.
 - **Follow the light:** Play steps through the link with captions; ‹ › move one step. On phones the step box sits above the drawing, and a fixed-height floating bar appears at the bottom while stepping.
 - **Layouts (owner's pick):** desktop is look A (clean drawing, legend and Save in a toolbar underneath, a Parts list card on the page). Phones are look B (parts table drawn into the drawing like a title block, Play and Save on its top-right corner).
@@ -28,7 +28,8 @@ Live site: https://garowetz.github.io/polaritytrace/ (branch `main`). Work happe
 - **Save PDF:** one US Letter landscape page, always in light colours: header with the link's name and date, the wide drawing as vector graphics, then three columns: parts list; channel check (verdict pill, one row per channel, notes, Try this fixes, under review); module port map and a QR code plus the address, both clickable. Desktop has a Save PDF button beside Save picture; on phones the Save menu offers Wide, Tall or PDF. jsPDF, svg2pdf.js and qrcode-generator load only when a PDF is made. Content lives in `src/ui/pdfContent.ts` (tested), placement in `src/ui/savePdf.ts`. Text uses the PDF's built-in Helvetica, so `pdfSafe` swaps characters it lacks (→ becomes ->).
 - **Shareable links:** the URL always holds the link. A preset is `?p=method-a`; anything else is `?a=<end A>&t=<cable>&b=<end B>`, e.g. `?a=cas-a-12~lc-ab~inv&t=trunk-a-12~SMF~APC&b=cas-a-12~lc-aa`. Bad links fall back to the default with a note.
 - **Footer:** name and tagline, TIA basis, "check against the manufacturer's drawings" disclaimer, "© <year> Polarity Trace. All rights reserved." and the build date. No personal or company names (owner's decision).
-- **Tests:** 201 engine, data and UI-logic tests, all passing.
+- **Parts review page:** `parts.html`, linked quietly from the footer ("Parts list"), hidden from search engines. Every part from the data in four numbered sections (1 Modules, 2 Equipment, 3 MPO cables, 4 Patch cords), each part with a reference (1A …), facts, status, source and numbered review points (1A-1 …), plus one list of all points. Content in `src/review/parts.ts` (tested); extra points per part in its `NOTES`. Letters shift if a part is added.
+- **Tests:** 206 engine, data and UI-logic tests, all passing.
 
 ## Decisions made
 
@@ -38,6 +39,8 @@ Live site: https://garowetz.github.io/polaritytrace/ (branch `main`). Work happe
 - MPO-16 for 800G is in v1 (800G DR8/SR8, 400G SR8). Twin-MPO 800G optics are out of v1.
 - F-U1-24-A is WARN rather than FAIL (light lands on Rx at port 13−p).
 - Verdict colours: TIA green, TIA orange and brand coral (owner-approved, noted in CLAUDE.md).
+- Parts are named by Type (Type A/B cassette, Type B trunk); Methods are whole links (TIA Method A/B). The owner's range is Type A modules for standard links and U1 for breakout; modules are not flipped, so the hint no longer points at Method B.
+- Non-standard A-to-A cords are a NOTE, not a warning (owner, 2026-11-10): rolling cords at one end is expected. Breakout presets now read Works. Recorded in the reference doc §3-1.
 - Copyright reads "Polarity Trace" only. The owner tried their own name and removed it; never add personal or company names to the repo.
 
 ## Open questions
@@ -48,7 +51,7 @@ Live site: https://garowetz.github.io/polaritytrace/ (branch `main`). Work happe
 
 ## Next steps
 
-1. **Owner review of the PDF**, then publish.
+1. **Owner review** of the PDF and the parts list (answer the review points by number), then publish.
 2. **Custom domain:** get ready for polaritytrace.com (polaritytrace.ca as backup).
 3. **Polarity Maps parser:** draft plain-text part format in `docs/polarity-maps.md` ([Module], [Assembly], [Cord]); parser not built.
 4. **CS module wiring** once question 1 is answered.

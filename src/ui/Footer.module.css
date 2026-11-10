@@ -51,3 +51,7 @@
     text-align: left;
   }
 }
+
+.quiet {
+  color: inherit;
+}
