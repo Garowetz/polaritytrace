@@ -161,10 +161,10 @@ export const presets: readonly Preset[] = [
   {
     id: 'sr10-breakout',
     label: '100G SR10 to 10 × 10G breakout (MPO-24)',
-    blurb: 'SR10 → MPO-24 Type B cable → 20-fibre breakout module → A-to-A cords → ten 10G SR optics.',
+    blurb: 'SR10 → MPO-24 Type A cable (rows swap) → 20-fibre breakout module → A-to-A cords → ten 10G SR optics.',
     config: {
       left: opticEnd('cfp-100g-sr10'),
-      cable: { trunk: 'trunk-b-24', ...MM },
+      cable: { trunk: 'trunk-a-24', ...MM },
       right: cassetteEnd('cas-sr10-24', 'lc-aa', { equipment: 'sfp-10g-sr' }),
     },
     expect: 'PASS',
@@ -173,10 +173,10 @@ export const presets: readonly Preset[] = [
   {
     id: 'sr10-direct',
     label: '100G SR10 direct (MPO-24)',
-    blurb: 'Two 100G SR10 optics joined by one MPO-24 Type B cable.',
+    blurb: 'Two 100G SR10 optics joined by one MPO-24 Type A cable (rows swap).',
     config: {
       left: opticEnd('cfp-100g-sr10'),
-      cable: { trunk: 'trunk-b-24', ...MM },
+      cable: { trunk: 'trunk-a-24', ...MM },
       right: opticEnd('cfp-100g-sr10'),
     },
     expect: 'PASS',

@@ -8,10 +8,11 @@ import type { OpticDef } from '../engine/types';
 const SR4_LANES = { positions: 12, lanes: parallelLanes(4, 12) };
 
 /**
- * SR10 on an MPO-24, looking in keyway up: lane k Tx at bottom-row 13 + k,
- * Rx at top-row 12 − k (reference §6.9, TIA liaison "Option 1").
+ * SR10 on an MPO-24 (reference §6.9, Cisco CPAK, Corning AEN150): lane k Tx on
+ * cable fibre 13 + k, Rx on fibre 1 + k, one above the other. Looking into the
+ * receptacle keyway up (this file's frame) that is positions 24 − k and 12 − k.
  */
-const SR10_LANES = Array.from({ length: 10 }, (_, i) => ({ lane: i + 1, tx: 14 + i, rx: 11 - i }));
+const SR10_LANES = Array.from({ length: 10 }, (_, i) => ({ lane: i + 1, tx: 23 - i, rx: 11 - i }));
 
 export const GENERIC_PORT = 'generic-duplex';
 
@@ -630,11 +631,11 @@ export const optics: readonly OpticDef[] = [
     kind: 'optic',
     id: 'cfp-100g-sr10',
     label: '100G SR10',
-    blurb: 'CFP / CFP2 / CXP / CPAK 100GBASE-SR10. Multimode MPO-24 · 20F: Tx on the bottom row, Rx on the top row.',
+    blurb: 'CFP / CFP2 / CXP / CPAK 100GBASE-SR10. Multimode MPO-24 · 20F: Rx on top-row fibres 2–11, Tx on bottom-row 14–23.',
     learnMore:
-      'Ten 10G lanes each way. Looking in, key up: Rx on top-row positions 2–11, Tx on bottom-row positions 14–23; ' +
-      'the four corners are dark. IEEE never numbered the lanes; this uses the numbering that makes breakout land ' +
-      'lane p on port p (TIA liaison "Option 1"). Some SR10 optics and line cards cannot break out: check the platform.',
+      'Ten 10G lanes each way. Rx on cable fibres 2–11 (top row), Tx on 14–23 (bottom row), each lane\'s pair one above ' +
+      'the other: lane 1 = fibres 2 and 14 … lane 10 = 11 and 23. The four corners are dark. A Type A 24F cable (rows swap) ' +
+      'keeps lane order. Some SR10 optics and line cards cannot break out: check the platform.',
     formFactor: 'CFP / CFP2 / CXP / CPAK',
     standard: '100GBASE-SR10 (IEEE 802.3ba Cl. 86)',
     connector: 'MPO-24',
@@ -657,7 +658,7 @@ export const optics: readonly OpticDef[] = [
       },
     ],
     inV1: true,
-    source: 'polarity-reference §6.9 (SR10 lane numbering PARTIAL)',
+    source: 'polarity-reference §6.9 (Cisco CPAK pinout, Corning AEN150)',
     verified: false,
     status: 'PARTIAL',
   },

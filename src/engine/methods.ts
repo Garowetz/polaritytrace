@@ -9,13 +9,18 @@ const straightA = (c: CassetteDef) => c.transition === 'straight' && c.rearAdapt
 const methodBFront = (c: CassetteDef) => c.rearAdapter === 'B' && ['straight', 'B2', 'BN'].includes(c.transition);
 const isU1 = (c: CassetteDef) => c.transition === 'U1' && c.rearAdapter === 'A';
 const isU2 = (c: CassetteDef) => c.transition === 'U2' && c.rearAdapter === 'B';
+const isStacked = (c: CassetteDef) => c.transition === 'stacked' && c.rearAdapter === 'A';
 const sideName = (s: Side) => (s === 'left' ? 'End A' : 'End B');
 
 export function detectMethod(link: ResolvedLink, mode: Mode): MethodId | null {
   const t = link.trunk.polarity;
-  if (mode === 'parallel') return t === 'B' ? 'direct-B' : null;
+  // Two-row MPO-24 optics (SR10) pair each lane top over bottom, so the
+  // row-swapping Type A 24F cable is the straight-through recipe (reference §6.9).
+  const twoRow = link.trunk.positions === 24;
+  if (mode === 'parallel') return t === 'B' ? 'direct-B' : t === 'A' && twoRow ? 'direct-A24' : null;
   if (mode === 'breakout') {
     const k = (link.left.kind === 'cassette' ? link.left : link.right) as ResolvedCassetteEnd;
+    if (t === 'A' && twoRow && isStacked(k.def)) return 'breakout-A24';
     return t === 'B' && (isU1(k.def) || isU2(k.def)) ? 'breakout-U' : null;
   }
   const L = (link.left as ResolvedCassetteEnd).def;
@@ -38,6 +43,8 @@ export const METHOD_NAMES: Record<MethodId, string> = {
   U2: 'TIA Method U2 (universal)',
   'direct-B': 'Direct parallel link, Type B',
   'breakout-U': 'Breakout through a universal cassette',
+  'direct-A24': 'Direct parallel link, MPO-24 Type A (rows swap)',
+  'breakout-A24': 'Breakout over an MPO-24 Type A cable',
 };
 
 export function methodIssues(link: ResolvedLink, mode: Mode, method: MethodId | null, lightOk: boolean): Issue[] {
@@ -56,9 +63,11 @@ export function methodIssues(link: ResolvedLink, mode: Mode, method: MethodId | 
       });
     } else {
       const why =
-        mode === 'breakout'
-          ? ' Through a trunk, U1 and U2 cassettes both need A-to-A cords for breakout.'
-          : '';
+        method === 'breakout-A24'
+          ? " Which fibre of each module port is A is assumed (top row); check the module's drawing."
+          : mode === 'breakout'
+            ? ' Through a trunk, U1 and U2 cassettes both need A-to-A cords for breakout.'
+            : '';
       issues.push({
         // Owner's call: A-to-A at one end is normal practice, so a note, not a warning.
         severity: 'note',

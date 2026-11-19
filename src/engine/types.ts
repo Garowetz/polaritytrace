@@ -50,7 +50,8 @@ export interface TrunkDef extends Described, Sourced {
   hint?: string;
 }
 
-export type Transition = 'straight' | 'U1' | 'U2' | 'B2' | 'BN' | 'AF' | 'U1-row';
+/** stacked: each port is one top-row and the fibre right below it (MPO-24, SR10 style). */
+export type Transition = 'straight' | 'U1' | 'U2' | 'B2' | 'BN' | 'AF' | 'U1-row' | 'stacked';
 
 export interface FrontPort {
   port: number;
@@ -257,7 +258,7 @@ export interface Channel {
 
 export type Mode = 'duplex' | 'parallel' | 'breakout';
 
-export type MethodId = 'A' | 'A-modified' | 'B' | 'C' | 'U1' | 'U2' | 'direct-B' | 'breakout-U';
+export type MethodId = 'A' | 'A-modified' | 'B' | 'C' | 'U1' | 'U2' | 'direct-B' | 'breakout-U' | 'direct-A24' | 'breakout-A24';
 
 export interface LinkResult {
   verdict: Verdict;

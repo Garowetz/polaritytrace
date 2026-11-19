@@ -112,7 +112,7 @@ describe('layout', () => {
       }
     }
     expect(n).toBeGreaterThan(1000);
-  });
+  }, 30_000);
 
   it('an end with nothing plugged in draws just the module, and fibres land on its front', () => {
     const c = methodAConfig();

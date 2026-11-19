@@ -46,11 +46,12 @@ const NOTES: Record<string, string[]> = {
   ],
   'cas-u1-24-16f': ['Wiring derived. Check against a product drawing, or remove if we do not sell it.'],
   'cas-sr10-24': [
-    'For 100G SR10 breakout to 10 × 10G. Wiring derived (port p = MPO p+1 and 24−p) so lane p lands on port p over a Type B 24F cable.',
-    'Check against the real module drawing (part numbers from the owner). If it has 12 ports with ports 1 and 12 empty, the port numbers shift by one.',
+    'For 100G SR10 breakout to 10 × 10G. Each port takes a stacked pair (2 and 14 … 11 and 23), matching the SR10 pinout; with a Type A 24F cable lane p lands on port p.',
+    'Assumed: the top-row fibre is the A side of each port, so A-to-A cords. If the real module has fibre 14 on A, standard cords work instead. Check the drawing.',
+    'If the real module has 12 ports with two empty, the port numbers shift.',
   ],
   'cfp-100g-sr10': [
-    'IEEE never numbered SR10 lanes. The site uses the numbering where breakout lands lane p on port p (TIA liaison Option 1; TIA-568.3 shows Option 2).',
+    'Pinout from Cisco CPAK and Corning: Rx on fibres 2–11, Tx on 14–23, each lane stacked (lane 1 = 2 and 14).',
     'Not every SR10 optic or line card supports 10×10G breakout. Check the platform.',
   ],
   'cas-a-24': ['Renumbers ports across the link (rows swap in a 24F trunk). Needs a matched far end.'],
