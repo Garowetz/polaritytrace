@@ -159,6 +159,30 @@ export const presets: readonly Preset[] = [
     expect: 'PASS',
   },
   {
+    id: 'sr10-breakout',
+    label: '100G SR10 to 10 × 10G breakout (MPO-24)',
+    blurb: 'SR10 → MPO-24 Type B cable → 20-fibre breakout module → A-to-A cords → ten 10G SR optics.',
+    config: {
+      left: opticEnd('cfp-100g-sr10'),
+      cable: { trunk: 'trunk-b-24', ...MM },
+      right: cassetteEnd('cas-sr10-24', 'lc-aa', { equipment: 'sfp-10g-sr' }),
+    },
+    expect: 'PASS',
+    underReview: true,
+  },
+  {
+    id: 'sr10-direct',
+    label: '100G SR10 direct (MPO-24)',
+    blurb: 'Two 100G SR10 optics joined by one MPO-24 Type B cable.',
+    config: {
+      left: opticEnd('cfp-100g-sr10'),
+      cable: { trunk: 'trunk-b-24', ...MM },
+      right: opticEnd('cfp-100g-sr10'),
+    },
+    expect: 'PASS',
+    underReview: true,
+  },
+  {
     id: '800g-dr8-direct',
     label: '800G DR8 direct (MPO-16)',
     blurb: 'Two 800G DR8 optics joined by one MPO-16 Type B cable.',

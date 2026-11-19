@@ -87,7 +87,7 @@ export interface DuplexCordDef extends Described, Sourced {
   standard: boolean;
 }
 
-export type OpticConnector = 'LC' | 'MPO-12' | 'MPO-16' | '2xMPO-12' | 'none';
+export type OpticConnector = 'LC' | 'MPO-12' | 'MPO-16' | 'MPO-24' | '2xMPO-12' | 'none';
 export type Modulation = 'NRZ' | 'PAM4';
 export type WavelengthScheme = 'single' | 'bidi2' | 'swdm4' | 'cwdm4' | 'lan-wdm4';
 export type FecMode = 'none' | 'BASE-R' | 'RS' | 'KP4';

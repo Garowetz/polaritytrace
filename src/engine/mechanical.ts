@@ -10,7 +10,7 @@ const sideName = (s: Side) => (s === 'left' ? 'End A' : 'End B');
 function endFootprint(end: ResolvedEnd): Footprint | 'twin' | 'duplex' {
   if (end.kind === 'cassette') return end.def.footprint;
   const c = end.def.connector;
-  if (c === 'MPO-12' || c === 'MPO-16') return c;
+  if (c === 'MPO-12' || c === 'MPO-16' || c === 'MPO-24') return c;
   if (c === '2xMPO-12') return 'twin';
   return 'duplex';
 }

@@ -240,6 +240,26 @@ export const cassettes: readonly CassetteDef[] = [
   },
   {
     kind: 'cassette',
+    id: 'cas-sr10-24',
+    label: 'SR10 breakout module, MPO-24 · 20F',
+    blurb: 'One MPO-24 with 20 fibres, 10 duplex LC ports: port p = MPO p+1 and 24−p. For 100G SR10 to 10 × 10G.',
+    learnMore:
+      'The universal-style pairing on the 20 lit positions: each port takes one top-row and one bottom-row fibre, ' +
+      'so with a Type B 24F cable lane p lands on port p. Wiring derived; check against the product drawing. ' +
+      'Some modules have 12 ports with the two end ports empty: there, port p here is port p+1.',
+    footprint: 'MPO-24',
+    positions: 24,
+    litPositions: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23],
+    transition: 'U1',
+    rearAdapter: 'A',
+    frontConnector: 'LC',
+    frontMap: fromPairs([2, 3, 4, 5, 6, 7, 8, 9, 10, 11], [23, 22, 21, 20, 19, 18, 17, 16, 15, 14]),
+    source: 'polarity-reference §4.3a(d) (derived); product drawing pending',
+    verified: false,
+    status: 'UNVERIFIED',
+  },
+  {
+    kind: 'cassette',
     id: 'cas-a-24',
     label: 'Type A cassette, 24F',
     blurb: 'One MPO-24, 12 ports: MPO n → LC fibre n. Needs a matched far end; renumbers ports.',

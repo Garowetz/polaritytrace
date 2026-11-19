@@ -45,6 +45,14 @@ const NOTES: Record<string, string[]> = {
     'With a Type A 24F trunk the light lands on port 13−p, so the site shows it as a warning, not a failure.',
   ],
   'cas-u1-24-16f': ['Wiring derived. Check against a product drawing, or remove if we do not sell it.'],
+  'cas-sr10-24': [
+    'For 100G SR10 breakout to 10 × 10G. Wiring derived (port p = MPO p+1 and 24−p) so lane p lands on port p over a Type B 24F cable.',
+    'Check against the real module drawing (part numbers from the owner). If it has 12 ports with ports 1 and 12 empty, the port numbers shift by one.',
+  ],
+  'cfp-100g-sr10': [
+    'IEEE never numbered SR10 lanes. The site uses the numbering where breakout lands lane p on port p (TIA liaison Option 1; TIA-568.3 shows Option 2).',
+    'Not every SR10 optic or line card supports 10×10G breakout. Check the platform.',
+  ],
   'cas-a-24': ['Renumbers ports across the link (rows swap in a 24F trunk). Needs a matched far end.'],
   'trunk-c-12': ['Method C only. Not suitable for parallel optics: the pair flip sends Tx onto Tx.'],
   'trunk-b-24': ['Two-row map (1→24) from one competitor table. Confirm against TIA-568.3-E.'],
@@ -180,6 +188,7 @@ export function reviewSections(catalog: Catalog): ReviewSection[] {
       { title: 'Duplex optics', defs: optics.filter((o) => o.inV1 && !o.generic && !o.mpo) },
       { title: 'Parallel optics, MPO-12', defs: parallel(12) },
       { title: 'Parallel optics, MPO-16', defs: parallel(16) },
+      { title: 'Parallel optics, MPO-24', defs: parallel(24) },
       { title: 'Not in the picker', defs: optics.filter((o) => !o.inV1) },
     ]),
     section(3, 'MPO cables', [

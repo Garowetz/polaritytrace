@@ -1,6 +1,6 @@
 # Status
 
-Updated 2026-11-10. Read this first when starting a new session, then `CLAUDE.md` and `docs/polarity-reference.md`.
+Updated 2026-11-19. Read this first when starting a new session, then `CLAUDE.md` and `docs/polarity-reference.md`.
 
 ## Where we are
 
@@ -28,6 +28,7 @@ Live site: https://garowetz.github.io/polaritytrace/ (branch `main`). Work happe
 - **Save PDF:** one US Letter landscape page, always in light colours: header with the link's name and date, the wide drawing as vector graphics, then three columns: parts list; channel check (verdict pill, one row per channel, notes, Try this fixes, under review); module port map and a QR code plus the address, both clickable. Desktop has a Save PDF button beside Save picture; on phones the Save menu offers Wide, Tall or PDF. jsPDF, svg2pdf.js and qrcode-generator load only when a PDF is made. Content lives in `src/ui/pdfContent.ts` (tested), placement in `src/ui/savePdf.ts`. Text uses the PDF's built-in Helvetica, so `pdfSafe` swaps characters it lacks (→ becomes ->).
 - **Shareable links:** the URL always holds the link. A preset is `?p=method-a`; anything else is `?a=<end A>&t=<cable>&b=<end B>`, e.g. `?a=cas-a-12~lc-ab~inv&t=trunk-a-12~SMF~APC&b=cas-a-12~lc-aa`. Bad links fall back to the default with a note.
 - **Footer:** name and tagline, TIA basis, "check against the manufacturer's drawings" disclaimer, "© <year> Polarity Trace. All rights reserved." and the build date. No personal or company names (owner's decision).
+- **100G SR10 (MPO-24), added 2026-11-19:** the SR10 optic (Rx top row 2–11, Tx bottom row 14–23, lane numbering per TIA liaison Option 1), a derived SR10 breakout module (MPO-24 · 20F, 10 LC ports, port p = MPO p+1 and 24−p) and two examples: SR10 direct, and SR10 → Type B 24F → module → A-to-A → 10 × 10G SR (port p → p). The engine now models a two-row optic receptacle (each row mirrors in place). Reference §6.9 and §4.3a(d). The real module's part numbers and drawing (from the owner's other chat) were not found on this computer; the module stays UNVERIFIED until they are checked.
 - **Parts review page:** `parts.html`, linked quietly from the footer ("Parts list"), hidden from search engines. Every part from the data in four numbered sections (1 Modules, 2 Equipment, 3 MPO cables, 4 Patch cords), each part with a reference (1A …), facts, status, source and numbered review points (1A-1 …), plus one list of all points. Content in `src/review/parts.ts` (tested); extra points per part in its `NOTES`. Letters shift if a part is added.
 - **Tests:** 206 engine, data and UI-logic tests, all passing.
 
@@ -47,7 +48,8 @@ Live site: https://garowetz.github.io/polaritytrace/ (branch `main`). Work happe
 
 1. **8-port CS module (MPO-16) wiring.** The site assumes universal-style pairing (port p = MPO p and 17−p), so 800G DR8 breakout to 8 × 100G DR works through a Type B trunk with CS-to-LC A-to-A cords. If "1 to 1, 2 to 2" means straight wiring, DR8 breakout fails with every cord and trunk. Waiting on the product drawing or the owner's reading. The straight-wiring change is kept in git stash "cs-16 straight wiring".
 2. **Key up / key down.** The owner finds it confusing; it needs a plain explanation before it goes into Polarity Maps or onto the drawing (key bumps on the plugs wait on this).
-3. **Research, for the separate research chat:** R3-O8 (Juniper), the R3-O2 U2 TIA statement, MPO-24 adapter row swap, confirming F-U1-24-A.
+3. **SR10 module wiring.** Confirm against the real breakout module's drawing: 10 ports or 12 ports with the ends empty, and which MPO positions feed each port. Owner has the part numbers in another chat.
+4. **Research, for the separate research chat:** R3-O8 (Juniper), the R3-O2 U2 TIA statement, MPO-24 adapter row swap, confirming F-U1-24-A.
 
 ## Next steps
 

@@ -52,10 +52,13 @@ export function adapterMap(type: PolarityType, positions: number): PosMap {
 
 /**
  * A plug mated into an optic MPO receptacle transposes laterally:
- * receptacle i ↔ plug N + 1 − i (reference §3-1, rule 5). Single row only.
+ * receptacle i ↔ plug N + 1 − i (reference §3-1, rule 5). On a two-row
+ * MPO-24 the keys stay aligned, so each row mirrors in place and the rows
+ * do not swap: 1 ↔ 12, 13 ↔ 24 (reference §6.9).
  */
 export function receptacleMap(positions: number): PosMap {
-  if (positions > 16) throw new Error('Two-row optic receptacles are not modelled in v1');
+  if (positions === 24) return Array.from({ length: 24 }, (_, i) => (i < 12 ? 12 - i : 36 - i));
+  if (positions > 16) throw new Error(`No receptacle map for a ${positions}-position optic`);
   return reversed(positions);
 }
 

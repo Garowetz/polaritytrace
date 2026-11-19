@@ -7,6 +7,12 @@ import type { OpticDef } from '../engine/types';
 
 const SR4_LANES = { positions: 12, lanes: parallelLanes(4, 12) };
 
+/**
+ * SR10 on an MPO-24, looking in keyway up: lane k Tx at bottom-row 13 + k,
+ * Rx at top-row 12 − k (reference §6.9, TIA liaison "Option 1").
+ */
+const SR10_LANES = Array.from({ length: 10 }, (_, i) => ({ lane: i + 1, tx: 14 + i, rx: 11 - i }));
+
 export const GENERIC_PORT = 'generic-duplex';
 
 export const optics: readonly OpticDef[] = [
@@ -615,6 +621,43 @@ export const optics: readonly OpticDef[] = [
     interopGroup: 'mm850-50pam4',
     inV1: false,
     source: 'polarity-reference §6.2, §6.7, §3-3 (SR8 row)',
+    verified: false,
+    status: 'PARTIAL',
+  },
+
+  // --- MPO-24 (owner request, 2026-11-19) --------------------------------
+  {
+    kind: 'optic',
+    id: 'cfp-100g-sr10',
+    label: '100G SR10',
+    blurb: 'CFP / CFP2 / CXP / CPAK 100GBASE-SR10. Multimode MPO-24 · 20F: Tx on the bottom row, Rx on the top row.',
+    learnMore:
+      'Ten 10G lanes each way. Looking in, key up: Rx on top-row positions 2–11, Tx on bottom-row positions 14–23; ' +
+      'the four corners are dark. IEEE never numbered the lanes; this uses the numbering that makes breakout land ' +
+      'lane p on port p (TIA liaison "Option 1"). Some SR10 optics and line cards cannot break out: check the platform.',
+    formFactor: 'CFP / CFP2 / CXP / CPAK',
+    standard: '100GBASE-SR10 (IEEE 802.3ba Cl. 86)',
+    connector: 'MPO-24',
+    mpo: { positions: 24, lanes: SR10_LANES },
+    fibre: 'MMF',
+    polish: 'UPC',
+    speed: '100 Gb/s (10 × 10G)',
+    reach: '100 m OM3 / 150 m OM4',
+    laneRateGbps: 10,
+    modulation: 'NRZ',
+    wavelengthScheme: 'single',
+    interopGroup: 'mm850-10nrz',
+    breakout: [
+      {
+        group: 'mm850-10nrz',
+        count: 10,
+        verdict: 'PASS',
+        note: 'Set the port to 10×10G breakout where the platform supports it. Reach stays at the SR10 limit (100 m OM3 / 150 m OM4).',
+        status: 'PARTIAL',
+      },
+    ],
+    inV1: true,
+    source: 'polarity-reference §6.9 (SR10 lane numbering PARTIAL)',
     verified: false,
     status: 'PARTIAL',
   },

@@ -27,7 +27,7 @@ function withEnd(config: LinkConfig, side: Side, patch: Partial<CassetteEnd>): L
 function footprintOf(end: EndConfig, catalog: Catalog): Footprint | undefined {
   if (end.kind === 'cassette') return catalog.cassettes.find((c) => c.id === end.cassette)?.footprint;
   const c = catalog.optics.find((o) => o.id === end.optic)?.connector;
-  return c === 'MPO-12' || c === 'MPO-16' ? c : undefined;
+  return c === 'MPO-12' || c === 'MPO-16' || c === 'MPO-24' ? c : undefined;
 }
 
 interface Candidate {

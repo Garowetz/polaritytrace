@@ -622,7 +622,16 @@ With an MPO-16 Type B trunk (f(i)=17−i, itself derived; §2.5) and Type A adap
 
 The set is closed under i → 25−i, so with a 24F Type B trunk port *p* → *p* and Tx→Rx hold. In direct breakout, each LC port carries exactly one SR8 option-A Tx lane and one Rx lane.
 
-**Tool rule:** ship U1-16, U1-24 and U1-24·16F with a visible **"derived, not a published TIA transition"** badge (`verified: false`).
+**(d) SR10 breakout module: MPO-24 · 20F → 10 LC ports (added 2026-11-19, DERIVED).** Lit positions are the SR10 footprint (§6.9): 2–11 and 14–23. Port *p* = MPO *p*+1 (A) and 24−*p* (B).
+
+| LC port | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Fibre A (MPO) | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 |
+| Fibre B (MPO) | 23 | 22 | 21 | 20 | 19 | 18 | 17 | 16 | 15 | 14 |
+
+This is U1-24 (§4.3a(b)) with the four corner positions dark, so it is closed under i → 25−i. Trace for SR10 lane *k* (§6.9) through a Type B 24F cable and a Type A rear adapter: Tx 13+*k* → plug 24−*k* (receptacle mirror) → far 1+*k* = **port *k* fibre A**; the optic's Rx 12−*k* is reached from far 24−*k* = port *k* fibre B. Same result as SR4 through U1 (§3-1): **A-to-A cords PASS, A-to-B FAIL (Tx→Tx).** A Type A 24F cable (rows swap) still delivers Tx→Rx but reverses the ports: lane *k* → port 11−*k* (WARN, mixed method; the same pattern as F-U1-24-A). Status UNVERIFIED: a Nokia solution sheet describes a "1x MPO-24 to 12-port (10 used) duplex LC" breakout module for SR10 over an MPO-24 cable, each 10GE on its own fibre pair, but its wiring was not read. If that module numbers ports 1–12 with ports 1 and 12 dark (U1-24 wiring), port *p* here is port *p*+1 there.
+
+**Tool rule:** ship U1-16, U1-24, U1-24·16F and the SR10 module with a visible **"derived, not a published TIA transition"** badge (`verified: false`).
 
 ### 4.4 TIA Type-U2 transition
 **Tooltip (revised in revision 3):** "U2 cassette: like U1 but mirror-paired (12+1, 11+2 …) and used with key-up/key-up adapters. Through a trunk it behaves exactly like U1; its breakout advantage applies only when its MPO plugs straight into the optic."
@@ -796,6 +805,22 @@ All MPO positions are looking into the module receptacle, keyway up. Unless note
 | 400G DR4 → 4× 100G-DR (or FR/LR) | MPO-12 APC breakout → 4 duplex LC/APC | PASS (Cisco; Smartoptics "4x100GAUI-2 mode … to enable 400G to 4x 100G break-out")\[27\]\[44\] |
 | 400G SR4.2 → 4× 100G SR1.2 | MPO-12 → 4 duplex LC; TR fibre must meet RT | PASS (Cisco)\[34\] |
 | 800G twin-port → 2× 400G | Two straight Type-B MPO-12 cords to two 400G single-port optics | PASS (NVIDIA)\[42\]\[45\] |
+
+### 6.9 100GBASE-SR10 on MPO-24 (added 2026-11-19, owner request)
+**Status:** row layout VERIFIED (two sources agree); lane numbering PARTIAL (IEEE assigned none).
+- IEEE 802.3ba Clause 86: 100GBASE-SR10, ten 10G NRZ lanes each way, 850 nm multimode, 100 m OM3 / 150 m OM4. The recommended MDI is a two-row MPO-24 ("2-row MPO12").
+- **Row layout**, looking into the receptacle keyway up: **Rx on the middle 10 positions of the top row (2–11), Tx on the middle 10 of the bottom row (14–23); corners 1, 12, 13 and 24 dark.** Sources: TIA TR-42.11 liaison slides to IEEE 802.3 (March 2026), which draw X Rx … X over X Tx1 … Tx10 X; and Senko, "Low Loss MPO: Vital for 40/100G Ethernet Migration" (2015): "The middle 10 positions of the top row are used for Receive while the middle 10 positions of the bottom row are used for Transmit."
+- **Lane numbers:** the TIA liaison says "As the SR10 spec did not originally assume breakout scenarios, no Tx/Rx channel numbers were assigned". It shows Tx1–Tx10 left to right on the bottom row in both options; **Option 1** numbers the top row Rx10 … Rx1, **Option 2** Rx1 … Rx10. TIA-568.3 currently supports Option 2; a Corning application note (AEN150) aligns with Option 1 and illustrates breakout.
+- **Tool choice:** lane *k* Tx at 13+*k*, Rx at 12−*k* (Option 1). Direct links pass with either option (IEEE does not number lanes, so any lane order works). Option 1 is the one under which breakout over a Type B 24F cable pairs Tx *k* and Rx *k* on one duplex port (§4.3a(d)); under Option 2 the same port would carry Tx *k* and Rx 11−*k*.
+- **Receptacle rule on two rows (derived):** a plug in a receptacle meets it with keys aligned, so each row mirrors in place and the rows do not swap: 1 ↔ 12, 13 ↔ 24. This extends §3-1 rule 5. Check: SR10 → Type B 24F (i → 25−i) → SR10 lands Tx *k* on Rx *k*. Gigamon's SR10 cabling note specifies a female-to-female UPC "cable type B".
+- **Breakout support varies:** Cisco's CPAK-100G-SR10 and SmartOptics' CFP SR10 support 10×10G; Juniper lists its CFP-100GBASE-SR10 as not breakout capable.
+
+| ID | Setup | Expected |
+|---|---|---|
+| SR10-01 | SR10 → Type B 24F → SR10 | PASS, 10 lanes |
+| SR10-02 | SR10 → Type B 24F → SR10 module (§4.3a(d)) → A-to-A → 10 × 10G SR | PASS (note: non-standard cord), lane *k* → port *k* |
+| SR10-03 | Same with A-to-B cords | FAIL, Tx→Tx |
+| SR10-04 | Same with a Type A 24F cable | WARN: Tx→Rx, but lane *k* → port 11−*k* |
 
 ### 6.6 Duplex Tx/Rx side on the transceiver face (revision 2)
 **Status:** VERIFIED for QSFP-DD / QSFP family (QSFP-DD MSA, SFP-DD MSA, QSFP MSA). PARTIAL for SFP/SFP+/SFP28 (secondary summary plus Cisco orientation note; the INF-8074i figure itself was not read).
