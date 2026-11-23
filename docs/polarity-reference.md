@@ -786,6 +786,8 @@ All MPO positions are looking into the module receptacle, keyway up. Unless note
 
 **Lane numbering within the Tx/Rx blocks** (which Tx lane is in which position) differs between figures (QSFP-DD versus some IEEE drafts). Status: PARTIAL. The engine should test by **position sets** (Tx block → Rx block) and not by lane number.
 
+- **Naming (added 2026-11-23):** single-MPO-16 singlemode 8 × 100G parts are also sold as "2 × 400GBASE-DR4". Juniper QDD-2X400G-DR4 (740-145102): "QSFP-DD800, 2x400GBASE-DR4, … SMF 500 m, MPO-16 APC receptacle", breakout capable. The site treats it as the same fibre map as 800G DR8 (label "800G DR8 / 2×DR4 · MPO-16"). **PARTIAL:** the 2×DR4 lane-to-fibre table is in Juniper's login-only spec PDF and has not been checked.
+
 ### 6.4 Dual CS / SN / MDC multi-port optics (QSFP-DD MSA Table 15)
 **Status:** VERIFIED for the port grouping (QSFP-DD MSA Rev 7.1 Table 15; Cisco and Arista use these MSAs).\[38\] The per-port Tx/Rx position follows the duplex convention (PARTIAL).
 

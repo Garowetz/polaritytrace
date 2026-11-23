@@ -698,10 +698,11 @@ export const optics: readonly OpticDef[] = [
   {
     kind: 'optic',
     id: 'osfp-800g-dr8',
-    label: '800G DR8',
-    blurb: 'OSFP / QSFP-DD800 800GBASE-DR8. Singlemode MPO-16 APC: Tx on 1–8, Rx on 9–16. 8 × 100G PAM4.',
+    label: '800G DR8 / 2×DR4 · MPO-16',
+    blurb: 'OSFP / QSFP-DD800 800GBASE-DR8 or 2 × 400GBASE-DR4 on one MPO-16 APC. Singlemode: Tx on 1–8, Rx on 9–16. 8 × 100G PAM4.',
     learnMore:
-      'Breaks out to eight 100G DR or FR1 optics. Through a Type B trunk and a universal-style module, ' +
+      'Also sold as "QSFP-DD800 2x400GBASE-DR4, MPO-16 APC" (e.g. Juniper QDD-2X400G-DR4): same fibres, the switch just runs it ' +
+      'as two 400G ports instead of one 800G port. Lane order on 2×DR4 parts not yet checked against a vendor pinout. Breaks out to eight 100G DR or FR1 optics. Through a Type B trunk and a universal-style module, ' +
       'the breakout needs A-to-A cords, the same as SR4 breakout.',
     formFactor: 'OSFP / QSFP-DD800',
     standard: '800GBASE-DR8 (IEEE 802.3df Cl. 124)',
@@ -765,7 +766,7 @@ export const optics: readonly OpticDef[] = [
   {
     kind: 'optic',
     id: 'osfp-800g-2xdr4',
-    label: '800G 2 × DR4',
+    label: '800G 2 × DR4 · twin MPO-12',
     blurb: 'Twin-port OSFP 800G, two MPO-12 APC singlemode ports, 8 × 100G PAM4.',
     formFactor: 'OSFP (twin port)',
     standard: '800GBASE-DR8 / 2 × 400GBASE-DR4 (IEEE 802.3df)',
