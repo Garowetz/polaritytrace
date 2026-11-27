@@ -4,7 +4,7 @@ Updated 2026-11-27. Read this first when starting a new session, then `CLAUDE.md
 
 ## Where we are
 
-Live site: https://garowetz.github.io/polaritytrace/ (branch `main`). Work happens on `dev`; `main` is updated only when the owner says "publish". Last publish: 2026-11-27 at 7c7d295 (MPO adapter panel ends: TIA parallel Methods A, B and C, breakout through a panel; Choose pop-up sections).
+Live site: https://garowetz.github.io/polaritytrace/ (branch `main`). Work happens on `dev`; `main` is updated only when the owner says "publish". Last publish: 2026-11-27 at 7f9f50f (generic MPO equipment port behind panels; MPO adapter panel ends: TIA parallel Methods A, B and C, breakout through a panel; Choose pop-up sections).
 
 | Step | What | State |
 |---|---|---|
