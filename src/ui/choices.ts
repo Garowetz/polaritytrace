@@ -41,6 +41,15 @@ export function fitPanelCord(c: Catalog, current: string | undefined, optic: str
   return (same.find((t) => t.litPositions.length === lit) ?? same[0] ?? fits[0])?.id ?? 'trunk-a-12';
 }
 
+/** The generic MPO equipment port that uses every fibre of this patch cord. */
+export function genericMpoFor(c: Catalog, cord: string) {
+  const t = c.trunks.find((x) => x.id === cord);
+  if (!t) return undefined;
+  return c.optics.find((o) => o.generic && o.mpo && o.connector === t.footprint && o.mpo.lanes.length * 2 === t.litPositions.length);
+}
+
+const isGeneric = (c: Catalog, id: string) => Boolean(c.optics.find((o) => o.id === id)?.generic);
+
 /** An MPO optic that fits the cable, for a panel chosen in place of a module. */
 function opticForCable(c: Catalog, config: LinkConfig): string {
   const trunk = c.trunks.find((t) => t.id === config.cable.trunk);
@@ -95,14 +104,20 @@ export function applyChoice(c: Catalog, config: LinkConfig, t: PickerTarget, id:
   const adapter = panelAdapter(id);
   if (t.what === 'part' && adapter) {
     // An adapter panel: keep the optic and patch cord if there already are some.
-    const optic = end.kind === 'mpoOptic' ? end.optic : opticForCable(c, config);
+    let optic = end.kind === 'mpoOptic' ? end.optic : opticForCable(c, config);
     const cord = fitPanelCord(c, end.kind === 'mpoOptic' ? end.panel?.cord : undefined, optic, config.cable.trunk);
+    // In place of a module, start with the generic port so every channel shows.
+    if (end.kind !== 'mpoOptic') optic = genericMpoFor(c, cord)?.id ?? optic;
     const keep: Partial<OpticEnd> = end.kind === 'mpoOptic' && end.fec ? { fec: end.fec } : {};
     const gender = end.kind === 'mpoOptic' && end.panel?.cordGender ? { cordGender: end.panel.cordGender } : {};
     return withEnd(c, config, t.side, opticEnd(optic, { ...keep, panel: { adapter, cord, ...gender } }));
   }
   if (end.kind === 'mpoOptic' && end.panel && t.what !== 'part') {
-    if (t.what === 'cord') return { ...config, [t.side]: { ...end, panel: { ...end.panel, cord: id } } };
+    if (t.what === 'cord') {
+      // A generic port follows the cord's size, so every fibre stays a channel.
+      const optic = isGeneric(c, end.optic) ? (genericMpoFor(c, id)?.id ?? end.optic) : end.optic;
+      return { ...config, [t.side]: { ...end, optic, panel: { ...end.panel, cord: id } } };
+    }
     // A new optic behind the panel: the patch cord follows its footprint.
     const panel = { ...end.panel, cord: fitPanelCord(c, end.panel.cord, id, config.cable.trunk) };
     return withEnd(c, config, t.side, opticEnd(id, { panel }));

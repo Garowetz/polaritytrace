@@ -110,3 +110,54 @@ describe('adapter panels in the parts list (drawing sheet and PDF)', () => {
     expect(endA.rows.map((r) => r.label)).toEqual(['Optic', 'Spec']);
   });
 });
+
+describe('generic MPO equipment port behind a panel', () => {
+  const methodAWith = (left: string, leftCord: string, right: string, rightCord: string, trunk: string): LinkConfig => ({
+    left: panelEnd(left, leftCord, 'A'),
+    cable: { trunk, fibre: 'MMF', polish: 'UPC' },
+    right: panelEnd(right, rightCord, 'A'),
+  });
+
+  it('shows every fibre of the cord as a channel: 12F → 6, 8F → 4, 16F → 8', () => {
+    for (const [port, a, b, trunk, n] of [
+      ['generic-mpo-12', 'trunk-a-12', 'trunk-b-12', 'trunk-a-12', 6],
+      ['generic-mpo-12-8', 'trunk-a-8', 'trunk-b-8', 'trunk-a-12', 4],
+      ['generic-mpo-16', 'trunk-a-16', 'trunk-b-16', 'trunk-a-16', 8],
+    ] as const) {
+      const r = evaluateLink(methodAWith(port, a, port, b, trunk), catalog);
+      expect(r.verdict, port).toBe('PASS');
+      expect(r.method, port).toBe('array-A');
+      expect(r.channels, port).toHaveLength(n);
+    }
+  });
+
+  it('MPO-24: Type A cord, Type A trunk and Type A cord (three row swaps) delivers all 12 lanes, under review', () => {
+    const r = evaluateLink(methodAWith('generic-mpo-24', 'trunk-a-24', 'generic-mpo-24', 'trunk-a-24', 'trunk-a-24'), catalog);
+    expect(r.channels).toHaveLength(12);
+    expect(new Set(r.channels.map((c) => c.outcome))).toEqual(new Set(['tx-to-rx']));
+    expect(r.underReview.map((u) => u.id)).toContain('generic-mpo-24');
+  });
+
+  it('works against real optics and modules: no interop or fibre-type complaints', () => {
+    const r = evaluateLink(methodAWith('generic-mpo-12-8', 'trunk-a-8', 'qsfp28-100g-sr4', 'trunk-b-8', 'trunk-a-12'), catalog);
+    expect(r.issues.filter((i) => i.code !== 'mixed-method')).toEqual([]);
+  });
+
+  it('a panel chosen in place of a module starts with the generic port sized to its cord', () => {
+    const c = applyChoice(catalog, methodA, { what: 'part', side: 'right' }, PANEL_TILE.A);
+    expect(c.right).toEqual(panelEnd('generic-mpo-12', 'trunk-a-12', 'A'));
+  });
+
+  it('changing the cord resizes a generic port, but never a real optic', () => {
+    const start: LinkConfig = { ...methodA, right: panelEnd('generic-mpo-12', 'trunk-a-12', 'A') };
+    const c = applyChoice(catalog, start, { what: 'cord', side: 'right' }, 'trunk-b-8');
+    expect(c.right).toEqual(panelEnd('generic-mpo-12-8', 'trunk-b-8', 'A'));
+    const real = applyChoice(catalog, presets.find((p) => p.id === 'array-method-a')!.config, { what: 'cord', side: 'left' }, 'trunk-b-8');
+    expect(real.left.kind === 'mpoOptic' && real.left.optic).toBe('qsfp28-100g-sr4');
+  });
+
+  it('generic ports survive the URL round trip', () => {
+    const c = methodAWith('generic-mpo-16', 'trunk-a-16', 'generic-mpo-16', 'trunk-b-16', 'trunk-a-16');
+    expect(roundTrip(c)).toEqual(c);
+  });
+});

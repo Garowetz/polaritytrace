@@ -176,7 +176,7 @@ function section(number: number, title: string, groups: { title: string; defs: D
 export function reviewSections(catalog: Catalog): ReviewSection[] {
   const modules = catalog.cassettes.filter((c) => !c.fixtureOnly);
   const optics = catalog.optics;
-  const parallel = (n: number) => optics.filter((o) => o.inV1 && o.mpo?.positions === n);
+  const parallel = (n: number) => optics.filter((o) => o.inV1 && !o.generic && o.mpo?.positions === n);
   return [
     section(1, 'Modules', [
       { title: 'MPO-12 · 12F', defs: modules.filter((c) => c.positions === 12 && c.litPositions.length === 12) },
@@ -185,7 +185,7 @@ export function reviewSections(catalog: Catalog): ReviewSection[] {
       { title: 'MPO-24', defs: modules.filter((c) => c.positions === 24) },
     ]),
     section(2, 'Equipment', [
-      { title: 'Generic port', defs: optics.filter((o) => o.generic) },
+      { title: 'Generic ports', defs: optics.filter((o) => o.generic) },
       { title: 'Duplex optics', defs: optics.filter((o) => o.inV1 && !o.generic && !o.mpo) },
       { title: 'Parallel optics, MPO-12', defs: parallel(12) },
       { title: 'Parallel optics, MPO-16', defs: parallel(16) },

@@ -114,7 +114,7 @@ function resolveEnd(end: EndConfig, side: Side, cable: { fibre: Fibre; polish: P
     fibre: end.fibre ?? cable.fibre,
     cordFor: (port) => overrides.get(port) ?? cord,
     // A bare end keeps the generic port so checks that read it stay simple.
-    equipment: bare ? find(catalog.optics, catalog.optics.find((o) => o.generic)?.id ?? NO_EQUIPMENT, 'generic port') : find(catalog.optics, end.equipment, 'optic'),
+    equipment: bare ? find(catalog.optics, catalog.optics.find((o) => o.generic && !o.mpo)?.id ?? NO_EQUIPMENT, 'generic port') : find(catalog.optics, end.equipment, 'optic'),
     bare,
     fec: end.fec,
     patched,

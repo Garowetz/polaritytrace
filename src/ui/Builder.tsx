@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import type { Preset } from '../data/presets';
 import { defaultPolish, NO_EQUIPMENT, type CableConfig, type Catalog, type Fibre, type LinkConfig, type Polish, type Side } from '../engine';
 import styles from './Builder.module.css';
-import { applyChoice, cordsFor, PANEL_TILE, panelCordsFor, pickableCassettes, pickableEquipment, pickableMpoOptics, selectedId, sideTitle, type PickerTarget } from './choices';
+import { applyChoice, cordsFor, genericMpoFor, PANEL_TILE, panelCordsFor, pickableCassettes, pickableEquipment, pickableMpoOptics, selectedId, sideTitle, type PickerTarget } from './choices';
 import { frontCount } from './describe';
 import { AdapterMini, CassetteMini, CordMini, NoneMini, OpticMini, TrunkMini } from './MiniDiagram';
 import { Picker, type TileGroup } from './Picker';
@@ -45,7 +45,8 @@ export function Builder({ catalog, config, onChange, presets, activePreset, pick
         return { label: cordName(tr.label), sub: footprintLabel(tr.positions, tr.litPositions.length), review: !tr.verified };
       }
       const o = catalog.optics.find((x) => x.id === end.optic)!;
-      return { label: o.label, sub: `MPO optic · ${o.connector}`, review: !o.verified };
+      const sub = o.generic ? `${footprintLabel(o.mpo!.positions, o.mpo!.lanes.length * 2)}, every fibre` : `MPO optic · ${o.connector}`;
+      return { label: o.label, sub, review: !o.verified };
     }
     if (t.what === 'part') {
       if (end.kind === 'mpoOptic') {
@@ -270,9 +271,28 @@ function pickerContent(catalog: Catalog, config: LinkConfig, t: PickerTarget): {
         ],
       };
     }
+    const generic = genericMpoFor(catalog, end.panel.cord);
     return {
       title: `What the ${where} patch cord plugs into`,
       groups: [
+        ...(generic
+          ? [
+              {
+                title: 'Equipment port',
+                tiles: [
+                  {
+                    id: generic.id,
+                    label: generic.label,
+                    blurb: generic.blurb,
+                    learnMore: generic.learnMore,
+                    tag: footprintLabel(generic.mpo!.positions, generic.mpo!.lanes.length * 2),
+                    underReview: !generic.verified,
+                    picture: <OpticMini optic={generic} />,
+                  },
+                ],
+              },
+            ]
+          : []),
         {
           title: 'MPO optics',
           tiles: pickableMpoOptics(catalog).map((x) => ({

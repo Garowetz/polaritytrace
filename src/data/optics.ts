@@ -16,6 +16,48 @@ const SR10_LANES = Array.from({ length: 10 }, (_, i) => ({ lane: i + 1, tx: 23 -
 
 export const GENERIC_PORT = 'generic-duplex';
 
+/**
+ * Generic MPO equipment ports, one per patch cord size, so a panel end can show
+ * every fibre as a channel without picking a real optic. Single row: lane k Tx
+ * on position k, Rx on N + 1 − k (reference §3-1 rule 4). MPO-24 extends the
+ * SR10 pattern (§6.9) to all 24 fibres: lane k Tx on 25 − k, Rx on 13 − k.
+ */
+function genericMpo(id: string, connector: 'MPO-12' | 'MPO-16' | 'MPO-24', lit: number, lanes: OpticDef['mpo'], derived: boolean): OpticDef {
+  return {
+    kind: 'optic',
+    id,
+    generic: true,
+    label: 'Equipment port',
+    blurb: `A generic MPO port using every fibre (${connector} · ${lit}F). Shows each channel without picking an optic.`,
+    learnMore: derived
+      ? 'Tx on the bottom row and Rx on the top row, one above the other, extending the SR10 layout to all 24 fibres. Derived, not a published standard.'
+      : 'Lane 1 transmits on position 1 and receives on the mirror-image position, lane 2 on the next pair, and so on.',
+    formFactor: `${connector} port`,
+    standard: derived ? 'Derived from 100GBASE-SR10 (reference §6.9)' : 'Parallel lane rule (reference §3-1)',
+    connector,
+    mpo: lanes,
+    fibre: null,
+    polish: null,
+    speed: 'Any',
+    reach: '—',
+    laneRateGbps: null,
+    modulation: null,
+    wavelengthScheme: null,
+    interopGroup: 'generic',
+    inV1: true,
+    source: derived ? 'polarity-reference §6.9 (derived)' : 'polarity-reference §3-1',
+    verified: !derived,
+    status: derived ? 'PARTIAL' : 'VERIFIED',
+  };
+}
+
+export const GENERIC_MPO_PORTS: readonly OpticDef[] = [
+  genericMpo('generic-mpo-12-8', 'MPO-12', 8, { positions: 12, lanes: parallelLanes(4, 12) }, false),
+  genericMpo('generic-mpo-12', 'MPO-12', 12, { positions: 12, lanes: parallelLanes(6, 12) }, false),
+  genericMpo('generic-mpo-16', 'MPO-16', 16, { positions: 16, lanes: parallelLanes(8, 16) }, false),
+  genericMpo('generic-mpo-24', 'MPO-24', 24, { positions: 24, lanes: Array.from({ length: 12 }, (_, i) => ({ lane: i + 1, tx: 24 - i, rx: 12 - i })) }, true),
+];
+
 export const optics: readonly OpticDef[] = [
   {
     kind: 'optic',
@@ -39,6 +81,7 @@ export const optics: readonly OpticDef[] = [
     verified: true,
     status: 'VERIFIED',
   },
+  ...GENERIC_MPO_PORTS,
 
   // --- Duplex LC -----------------------------------------------------------
   {
