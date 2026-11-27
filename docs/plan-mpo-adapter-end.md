@@ -1,6 +1,6 @@
 # Plan: MPO adapter panel end
 
-Status: approved by the owner 2026-11-27. Steps 1–4 are built and tested (engine, URL, presets, pickers, plus the basic drawing); steps 5–6 are next.
+Status: approved by the owner 2026-11-27. All six steps are built and tested on `dev`. Not published yet.
 
 ## What it adds
 
@@ -152,7 +152,7 @@ interface OpticEnd {
 - Pulled forward from step 5 so the site never shows a panel wrongly: the
   drawing has the adapter (with key notes), the patch cord and both of its
   plugs, on desktop and phone.
-- Still to do (step 5): the parts list and PDF do not yet list the adapter and
-  patch cord as their own lines; key-up/key-up is not greyed out on APC (the
-  verdict blocks it and the fix offers key-up/key-down instead).
-- Step 6: reference "v1 scope" and `CLAUDE.md`.
+- Step 5: the parts list (and so the drawing sheet and PDF) lists the adapter,
+  the patch cord and its spec before the optic. The key-up/key-up tile is
+  greyed out on an APC cable, with the reason on the tile.
+- Step 6: `CLAUDE.md` and reference "v1 scope" record the exception.

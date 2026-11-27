@@ -135,6 +135,32 @@
   box-shadow: var(--shadow);
 }
 
+/* Can't be picked with this link (e.g. key-up/key-up on APC): shown, with the reason. */
+.disabled {
+  cursor: not-allowed;
+}
+
+.disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.disabled .choose {
+  cursor: not-allowed;
+}
+
+.disabled .picture,
+.disabled .tileHead,
+.disabled .blurb {
+  opacity: 0.5;
+}
+
+.why {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
 .selected {
   border-color: var(--text);
   box-shadow: 0 0 0 2px var(--text) inset;

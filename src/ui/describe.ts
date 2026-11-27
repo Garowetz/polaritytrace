@@ -1,6 +1,6 @@
 import type { CassetteDef, ChannelOutcome, DuplexCordDef, Fibre, LinkResult, OpticDef, Polish } from '../engine';
 import { METHOD_NAMES } from '../engine';
-import type { ResolvedCassetteEnd, ResolvedEnd, ResolvedLink } from '../engine/resolve';
+import type { ResolvedCassetteEnd, ResolvedEnd, ResolvedLink, ResolvedPanel } from '../engine/resolve';
 
 // Plain-language specs for each part, so the drawing carries everything
 // someone needs when it is copied out of the site.
@@ -76,6 +76,18 @@ export function trunkSpec(link: ResolvedLink): string {
 export const cordSpec = (cord: DuplexCordDef, end: ResolvedCassetteEnd) =>
   `Ends: ${cord.ends.cassette}/${end.frontPolish} to ${cord.ends.equipment}/${end.equipment.polish ?? 'UPC'}`;
 
+/** The adapter in a panel, by its key arrangement. */
+export const panelAdapterName = (a: 'A' | 'B') => (a === 'B' ? 'Key-up/key-up adapter (Type B)' : 'Key-up/key-down adapter (Type A)');
+
+/** A cable definition used as a panel's patch cord. */
+export const patchCordName = (label: string) => label.replace(/trunk/i, 'patch cord');
+
+/** Patch cord genders read optic end first, then panel end. */
+export function panelCordSpec(panel: ResolvedPanel, link: ResolvedLink): string {
+  const c = panel.cord;
+  return `${mpo(link.polish, c.positions)} - ${panel.cordGender.join('/')} (optic/panel) · ${fibreWord(link.fibre)}${usedNote(c.litPositions.length, c.positions)}`;
+}
+
 export function opticSpec(def: OpticDef): string {
   const n = def.mpo?.positions;
   const conn = n && def.polish ? mpo(def.polish, n) : def.connector;
@@ -94,8 +106,17 @@ export interface PartsColumn {
 }
 
 /** One end, one fact per row. */
-function endRows(end: ResolvedEnd): PartRow[] {
-  if (end.kind === 'mpoOptic') return [{ label: 'Optic', value: end.def.label }, { label: 'Spec', value: opticSpec(end.def) }];
+function endRows(end: ResolvedEnd, link: ResolvedLink): PartRow[] {
+  if (end.kind === 'mpoOptic') {
+    const optic = [{ label: 'Optic', value: end.def.label }, { label: 'Spec', value: opticSpec(end.def) }];
+    if (!end.panel) return optic;
+    return [
+      { label: 'Adapter panel', value: panelAdapterName(end.panel.adapter) },
+      { label: 'Patch cord', value: patchCordName(end.panel.cord.label) },
+      { label: 'Cord spec', value: panelCordSpec(end.panel, link) },
+      ...optic,
+    ];
+  }
   const [front, rear] = cassetteSpec(end);
   const rows: PartRow[] = [
     { label: 'Module', value: `${end.def.label}${end.mount === 'inverted' ? ', mounted upside down' : ''}` },
@@ -119,9 +140,9 @@ function endRows(end: ResolvedEnd): PartRow[] {
 /** The parts list as three columns: End A, the MPO cable and End B. */
 export function partsColumns(link: ResolvedLink): PartsColumn[] {
   return [
-    { heading: 'End A', rows: endRows(link.left) },
+    { heading: 'End A', rows: endRows(link.left, link) },
     { heading: 'MPO cable', rows: [{ label: 'Trunk', value: link.trunk.label }, { label: 'Spec', value: trunkSpec(link) }] },
-    { heading: 'End B', rows: endRows(link.right) },
+    { heading: 'End B', rows: endRows(link.right, link) },
   ];
 }
 

@@ -227,6 +227,10 @@ function pickerContent(catalog: Catalog, config: LinkConfig, t: PickerTarget): {
                 : 'Used in TIA Method B for parallel optics, with Type B patch cords and a Type B trunk. Multimode flat polish only.',
             tag: a === 'A' ? 'TIA Methods A and C' : 'TIA Method B · UPC only',
             underReview: false,
+            disabled:
+              a === 'B' && (config.cable.polish ?? defaultPolish(config.cable.fibre ?? 'SMF')) === 'APC'
+                ? 'Not on this cable: it is APC. Switch the cable to UPC to use it.'
+                : undefined,
             picture: <AdapterMini adapter={a} />,
           })),
         },

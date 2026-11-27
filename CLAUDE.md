@@ -32,8 +32,9 @@ The owner works in sales, not engineering. Explain things plainly, give clear "h
 - Labels use `MPO-<positions> · <lit>F` (e.g. MPO-12 · 8F). Never show a bare "MPO-8".
 
 ## v1 scope
-- Layout: [duplex cord + optics]? → End A (cassette or MPO optic) → one MPO cable → End B → [duplex cord + optics]?
-- One MPO cable only. Cassettes have exactly one rear MPO. No conversion trunks, harnesses, two-trunk chains or SN/MDC yet.
+- Layout: [duplex cord + optics]? → End A (cassette, MPO optic, or MPO optic behind an adapter panel) → one MPO cable → End B → [duplex cord + optics]?
+- One MPO cable, plus one exception (owner, 2026-11-27): at either or both ends, an MPO optic may sit behind one adapter panel (key-up/key-down or key-up/key-up) with one MPO patch cord. The patch cord reuses the trunk definitions; a new panel starts with a Type A cord. Plan: `docs/plan-mpo-adapter-end.md`.
+- Cassettes have exactly one rear MPO. No conversion trunks or cords, harnesses, two-trunk chains, more than one adapter per end, or SN/MDC yet.
 - Public repo: never write the company name or any person's name into any file.
 
 ## Workflow

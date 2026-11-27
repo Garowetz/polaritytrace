@@ -330,13 +330,14 @@ Mostly confirmed from IEEE-aligned OEM documents (Cisco, Arista, Juniper, Intel,
 
 These decisions limit what the tool shows. They don't change the research.
 
-- **One MPO cable per link.** v1 has no two-trunk chains, MPO equipment cords between an optic and a trunk, harnesses or MPO-to-LC cables. The layout is: [duplex cord + duplex optics]? → End A (cassette or MPO optic) → one MPO cable → End B (cassette or MPO optic) → [duplex cord + duplex optics]?
+- **One MPO cable per link.** v1 has no two-trunk chains, harnesses or MPO-to-LC cables. The layout is: [duplex cord + duplex optics]? → End A (cassette or MPO optic) → one MPO cable → End B (cassette or MPO optic) → [duplex cord + duplex optics]?
+- **Exception: adapter panels (owner decision, 2026-11-27).** An MPO optic may sit behind one adapter panel and one MPO patch cord (array cord) at either or both ends, using the §3 adapter maps and the §2 cable maps for the cord. This brings rows P-ArrA, P-ArrB and P-ArrC (§8.1) into the UI. Patch cord default: Type A, unpinned at the optic and pinned at the panel. Two-row (MPO-24) key-up/key-up adapters stay out (no reference map).
 - **Cassettes have exactly one rear MPO** and duplex LC ports on the front. Two-MPO cassettes, conversion trunks and conversion cassettes (§9) are out of scope for now. Multiple MPOs are planned for a later version.
 - **SN and MDC** are out of scope (noted for later). **CS** behaves like LC.
 - **Gender default:** cassette rear MPO is male (pinned), the MPO cable is female, and transceivers are male. A gender mismatch is shown as a note and never changes the light-path verdict. It is kept in the data for a future "parts request" output.
 - **Polish default:** APC on singlemode MPO, UPC on multimode MPO, with the per-optic exceptions in §6.0.
 - **Adapters are fixed.** Key-changeable MPO adapters and connectors exist but are not modelled.
-- Rows in §8 that need components outside this scope (array cords, harnesses, two trunks) remain as engine tests but are not offered in the v1 UI.
+- Rows in §8 that need components outside this scope (harnesses, two trunks) remain as engine tests but are not offered in the v1 UI.
 - **MPO-16 is in v1 (owner decision, 2026-10-16; answers R3-O5).** Single-MPO-16 optics (800G DR8, 800G SR8, 400G SR8), MPO-16 trunks and an 8-port CS module with one MPO-16 rear are offered. Twin-MPO optics (800G 2×DR4) stay out. IO-11 therefore no longer carries an "out of v1" WARN. The 8-port CS module's internal map is assumed to be the derived U1-16 pairing (§4.3a a: port p = MPO p, 17−p) with a key-up/key-down rear adapter, **UNVERIFIED until the product drawing is supplied**. CS cords use LC polarity logic (§5.2).
 
 ---

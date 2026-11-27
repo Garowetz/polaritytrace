@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { catalog } from '../data/catalog';
 import { panelEnd, presets } from '../data/presets';
-import { evaluateLink, type LinkConfig } from '../engine';
+import { evaluateLink, resolveLink, type LinkConfig } from '../engine';
 import { pickerForBox } from './Builder';
 import { applyChoice, PANEL_TILE, panelCordsFor, selectedId } from './choices';
+import { partsColumns } from './describe';
 import { decodeLink, encodeLink } from './urlState';
 
 // Adapter panel ends in the URL and the pickers (plan-mpo-adapter-end.md, steps 3–4).
@@ -88,5 +89,24 @@ describe('adapter panels in the pickers', () => {
     expect(pickerForBox('optic', 'left', c)).toEqual({ what: 'equipment', side: 'left' });
     expect(pickerForBox('adapter', 'left', c)).toEqual({ what: 'part', side: 'left' });
     expect(pickerForBox('optic', 'left', sr4Direct)).toEqual({ what: 'part', side: 'left' });
+  });
+});
+
+describe('adapter panels in the parts list (drawing sheet and PDF)', () => {
+  it('lists the adapter, the patch cord and its spec before the optic', () => {
+    const c = presets.find((p) => p.id === 'sr4-panel-breakout')!.config;
+    const [endA] = partsColumns(resolveLink(c, catalog));
+    expect(endA.rows).toEqual([
+      { label: 'Adapter panel', value: 'Key-up/key-down adapter (Type A)' },
+      { label: 'Patch cord', value: 'Type A patch cord' },
+      { label: 'Cord spec', value: 'MPO/UPC - 12F - F/M (optic/panel) · Multimode' },
+      { label: 'Optic', value: '100G SR4' },
+      { label: 'Spec', value: expect.any(String) },
+    ]);
+  });
+
+  it('a plain optic end is unchanged', () => {
+    const [endA] = partsColumns(resolveLink(sr4Direct, catalog));
+    expect(endA.rows.map((r) => r.label)).toEqual(['Optic', 'Spec']);
   });
 });

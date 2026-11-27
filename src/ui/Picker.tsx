@@ -12,6 +12,8 @@ export interface Tile {
   tag?: string;
   /** A count that should stand out, such as "12F". */
   badge?: string;
+  /** Cannot be picked with the rest of the link as it is; the reason is shown on the tile. */
+  disabled?: string;
 }
 
 export interface TileGroup {
@@ -70,19 +72,20 @@ export function Picker({ title, groups, extra, selected, onPick, onClose }: Prop
                 <div className={styles.grid}>
                   {g.tiles.map((t) => {
                     const choose = () => {
+                      if (t.disabled) return;
                       onPick(t.id);
                       ref.current?.close();
                     };
                     return (
                       <div
                         key={t.id}
-                        className={`${styles.tile} ${t.id === selected ? styles.selected : ''}`}
+                        className={`${styles.tile} ${t.id === selected ? styles.selected : ''} ${t.disabled ? styles.disabled : ''}`}
                         // The whole tile picks; "Learn more" and its text do not.
                         onClick={(e) => {
                           if (!(e.target as HTMLElement).closest('button, p')) choose();
                         }}
                       >
-                        <button type="button" className={styles.choose} aria-pressed={t.id === selected} onClick={choose}>
+                        <button type="button" className={styles.choose} aria-pressed={t.id === selected} aria-disabled={t.disabled ? true : undefined} onClick={choose}>
                           <span className={styles.picture}>{t.picture}</span>
                           <span className={styles.tileHead}>
                             <span className={styles.tileLabel}>{t.label}</span>
@@ -90,6 +93,7 @@ export function Picker({ title, groups, extra, selected, onPick, onClose }: Prop
                           </span>
                           {t.badge && t.tag && <span className={styles.tag}>{t.tag}</span>}
                           <span className={styles.blurb}>{t.blurb}</span>
+                          {t.disabled && <span className={styles.why}>{t.disabled}</span>}
                           {t.underReview && <span className={styles.review}>Under review</span>}
                         </button>
                         {t.learnMore && (

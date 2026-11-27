@@ -17,7 +17,7 @@ Live site: https://garowetz.github.io/polaritytrace/ (branch `main`). Work happe
 
 ## What the site does today
 
-- **Build the link:** End A, the MPO cable and End B are picked independently. Each end is a module (with front polish, patch cords and what it plugs into) or an MPO optic. An Examples menu holds the presets, including the "common mistake" ones.
+- **Build the link:** End A, the MPO cable and End B are picked independently. Each end is a module (with front polish, patch cords and what it plugs into), an MPO optic, or an MPO adapter panel with an MPO patch cord to an MPO optic (TIA parallel Methods A, B and C; key-up/key-up is greyed out on APC). An Examples menu holds the presets, including the "common mistake" ones.
 - **Picker cards:** each part opens a card of picture tiles; tapping a part in the drawing opens its card. The module picker shows the fibre count as a bold badge and groups modules: Most used (Type A, U1, U1 8F), MPO-16 and MPO-24, then other and vendor-specific (Type B cassette is there). "How it is mounted" (Right way up / Upside down) sits at the top of the module picker; the End card shows "· Upside down" when set.
 - **The drawing:** every fibre in TIA-598 colours; hover or tap a fibre or port number to follow its path. Horizontal on desktop, vertical and centred on phones, with the key notes either side. Short labels on the drawing (`12F · Singlemode`, `MPO-12 · 12F`, `LC to LC`); full specs live in the parts list. Opens in lab (dark) mode.
 - **Follow the light:** Play steps through the link with captions; ‹ › move one step. On phones the step box sits above the drawing, and a fixed-height floating bar appears at the bottom while stepping.
@@ -53,7 +53,7 @@ Live site: https://garowetz.github.io/polaritytrace/ (branch `main`). Work happe
 
 ## Next steps
 
-0. **MPO adapter panel end** (plan approved 2026-11-27, `docs/plan-mpo-adapter-end.md`): optic → MPO patch cord → adapter → trunk, at either or both ends. Steps 1–4 built (engine, URL, presets, pickers, drawing). Next: parts list and PDF lines for the adapter and cord, then the scope docs. This lifts the "one MPO cable only" rule for this one case.
+0. **Publish the MPO adapter panel end** when the owner says so. All six plan steps are built on `dev` (`docs/plan-mpo-adapter-end.md`); `main` still has the site without it.
 1. **Owner review** of the parts list: answer the review points by number. The footer link stays until the owner asks to remove it.
 2. **Custom domain:** get ready for polaritytrace.com (polaritytrace.ca as backup).
 3. **Polarity Maps parser:** draft plain-text part format in `docs/polarity-maps.md` ([Module], [Assembly], [Cord]); parser not built.
