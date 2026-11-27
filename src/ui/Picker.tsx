@@ -65,7 +65,7 @@ export function Picker({ title, groups, extra, selected, onPick, onClose }: Prop
           {groups
             .filter((g) => g.tiles.length)
             .map((g) => (
-              <section key={g.title} className={styles.group}>
+              <section key={g.title} className={`${styles.group} ${groups.length > 1 ? styles.framed : ''}`}>
                 {groups.length > 1 && <h3 className={styles.groupTitle}>{g.title}</h3>}
                 <div className={styles.grid}>
                   {g.tiles.map((t) => {
