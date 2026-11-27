@@ -4,7 +4,7 @@ Updated 2026-11-27. Read this first when starting a new session, then `CLAUDE.md
 
 ## Where we are
 
-Live site: https://garowetz.github.io/polaritytrace/ (branch `main`). Work happens on `dev`; `main` is updated only when the owner says "publish". Last publish: 2026-11-10 at 8734090 (PDF export, parts review page, A-to-A as a note, Type B naming).
+Live site: https://garowetz.github.io/polaritytrace/ (branch `main`). Work happens on `dev`; `main` is updated only when the owner says "publish". Last publish: 2026-11-27 at 7c7d295 (MPO adapter panel ends: TIA parallel Methods A, B and C, breakout through a panel; Choose pop-up sections).
 
 | Step | What | State |
 |---|---|---|
@@ -53,7 +53,6 @@ Live site: https://garowetz.github.io/polaritytrace/ (branch `main`). Work happe
 
 ## Next steps
 
-0. **Publish the MPO adapter panel end** when the owner says so. All six plan steps are built on `dev` (`docs/plan-mpo-adapter-end.md`); `main` still has the site without it.
 1. **Owner review** of the parts list: answer the review points by number. The footer link stays until the owner asks to remove it.
 2. **Custom domain:** get ready for polaritytrace.com (polaritytrace.ca as backup).
 3. **Polarity Maps parser:** draft plain-text part format in `docs/polarity-maps.md` ([Module], [Assembly], [Cord]); parser not built.
