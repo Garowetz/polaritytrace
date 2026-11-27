@@ -1,4 +1,5 @@
 import type {
+  AdapterType,
   CassetteDef,
   Catalog,
   DuplexCordDef,
@@ -45,11 +46,19 @@ export interface ResolvedCassetteEnd {
   patched: ReadonlySet<number>;
 }
 
+export interface ResolvedPanel {
+  adapter: AdapterType;
+  cord: TrunkDef;
+  /** [optic side, panel side]. */
+  cordGender: readonly [Gender, Gender];
+}
+
 export interface ResolvedOpticEnd {
   kind: 'mpoOptic';
   side: Side;
   def: OpticDef;
   fec?: FecMode;
+  panel?: ResolvedPanel;
 }
 
 export type ResolvedEnd = ResolvedCassetteEnd | ResolvedOpticEnd;
@@ -75,7 +84,13 @@ function find<T extends { id: string }>(list: readonly T[], id: string, kind: st
 
 function resolveEnd(end: EndConfig, side: Side, cable: { fibre: Fibre; polish: Polish }, catalog: Catalog): ResolvedEnd {
   if (end.kind === 'mpoOptic') {
-    return { kind: 'mpoOptic', side, def: find(catalog.optics, end.optic, 'optic'), fec: end.fec };
+    const def = find(catalog.optics, end.optic, 'optic');
+    const panel: ResolvedPanel | undefined = end.panel && {
+      adapter: end.panel.adapter,
+      cord: find(catalog.trunks, end.panel.cord, 'patch cord'),
+      cordGender: end.panel.cordGender ?? ['F', 'M'],
+    };
+    return { kind: 'mpoOptic', side, def, fec: end.fec, ...(panel && { panel }) };
   }
   const def = find(catalog.cassettes, end.cassette, 'cassette');
   const cord = find(catalog.cords, end.cord, 'cord');

@@ -1,5 +1,5 @@
 import { evaluateLink } from './evaluate';
-import type { CassetteEnd, Catalog, EndConfig, Footprint, LinkConfig, Side, Verdict } from './types';
+import type { CassetteEnd, Catalog, EndConfig, Footprint, LinkConfig, PanelConfig, Side, Verdict } from './types';
 
 // Suggests the simplest change that makes a failing link work. Tries one change
 // at a time (cords first, then mounting, trunk, cassettes) and ranks the ones
@@ -24,8 +24,18 @@ function withEnd(config: LinkConfig, side: Side, patch: Partial<CassetteEnd>): L
   return { ...config, [side]: { ...end, ...patch } };
 }
 
+function withPanel(config: LinkConfig, side: Side, patch: Partial<PanelConfig>): LinkConfig {
+  const end = config[side];
+  if (end.kind !== 'mpoOptic' || !end.panel) return config;
+  return { ...config, [side]: { ...end, panel: { ...end.panel, ...patch } } };
+}
+
+const adapterLabel = (a: 'A' | 'B') => (a === 'A' ? 'key-up/key-down' : 'key-up/key-up');
+
 function footprintOf(end: EndConfig, catalog: Catalog): Footprint | undefined {
   if (end.kind === 'cassette') return catalog.cassettes.find((c) => c.id === end.cassette)?.footprint;
+  // Through a panel the trunk meets the patch cord.
+  if (end.panel) return catalog.trunks.find((t) => t.id === end.panel?.cord)?.footprint;
   const c = catalog.optics.find((o) => o.id === end.optic)?.connector;
   return c === 'MPO-12' || c === 'MPO-16' || c === 'MPO-24' ? c : undefined;
 }
@@ -52,6 +62,30 @@ function candidates(config: LinkConfig, catalog: Catalog): Candidate[] {
         cost: 1,
       });
     }
+  }
+
+  // Panel ends: swap the MPO patch cord (same footprint and fibre count), or the adapter.
+  for (const side of sides) {
+    const end = config[side];
+    if (end.kind !== 'mpoOptic' || !end.panel) continue;
+    const panel = end.panel;
+    const current = catalog.trunks.find((t) => t.id === panel.cord);
+    if (!current) continue;
+    const cordName = (label: string) => label.replace(/trunk/i, 'patch cord');
+    for (const t of catalog.trunks) {
+      if (t.id === current.id || t.footprint !== current.footprint || t.litPositions.length !== current.litPositions.length) continue;
+      out.push({
+        message: `Swap the ${hand(side)} MPO patch cord from ${cordName(current.label)} to ${cordName(t.label)}.`,
+        config: withPanel(config, side, { cord: t.id }),
+        cost: 1,
+      });
+    }
+    const other = panel.adapter === 'A' ? 'B' : 'A';
+    out.push({
+      message: `Use a ${adapterLabel(other)} adapter in the ${hand(side)} panel.`,
+      config: withPanel(config, side, { adapter: other }),
+      cost: 2,
+    });
   }
 
   const l = config.left;

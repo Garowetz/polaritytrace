@@ -2,9 +2,9 @@ import type { ReactNode } from 'react';
 import type { Preset } from '../data/presets';
 import { defaultPolish, NO_EQUIPMENT, type CableConfig, type Catalog, type Fibre, type LinkConfig, type Polish, type Side } from '../engine';
 import styles from './Builder.module.css';
-import { applyChoice, cordsFor, pickableCassettes, pickableEquipment, pickableMpoOptics, selectedId, sideTitle, type PickerTarget } from './choices';
+import { applyChoice, cordsFor, PANEL_TILE, panelCordsFor, pickableCassettes, pickableEquipment, pickableMpoOptics, selectedId, sideTitle, type PickerTarget } from './choices';
 import { frontCount } from './describe';
-import { CassetteMini, CordMini, NoneMini, OpticMini, TrunkMini } from './MiniDiagram';
+import { AdapterMini, CassetteMini, CordMini, NoneMini, OpticMini, TrunkMini } from './MiniDiagram';
 import { Picker, type TileGroup } from './Picker';
 
 // Three independent parts: End A, the MPO cable, End B. Each part opens a
@@ -26,6 +26,9 @@ export const presetFor = (presets: readonly Preset[], c: LinkConfig) => presets.
 
 const fibreName = (f: Fibre | null) => (f === 'SMF' ? 'Singlemode' : f === 'MMF' ? 'Multimode' : '');
 const footprintLabel = (positions: number, lit: number) => `MPO-${positions} · ${lit}F`;
+/** A cable definition used as a panel's patch cord. */
+const cordName = (label: string) => label.replace(/trunk/i, 'patch cord');
+const adapterName = (a: 'A' | 'B') => (a === 'B' ? 'Key-up/key-up adapter' : 'Key-up/key-down adapter');
 
 export function Builder({ catalog, config, onChange, presets, activePreset, picker, onPicker }: Props) {
   const nameOf = (t: PickerTarget): { label: string; sub: string; review: boolean } => {
@@ -34,6 +37,16 @@ export function Builder({ catalog, config, onChange, presets, activePreset, pick
       return { label: tr.label, sub: footprintLabel(tr.positions, tr.litPositions.length), review: !tr.verified };
     }
     const end = config[t.side];
+    if (end.kind === 'mpoOptic' && end.panel) {
+      const panel = end.panel;
+      if (t.what === 'part') return { label: adapterName(panel.adapter), sub: 'MPO adapter panel', review: false };
+      if (t.what === 'cord') {
+        const tr = catalog.trunks.find((x) => x.id === panel.cord)!;
+        return { label: cordName(tr.label), sub: footprintLabel(tr.positions, tr.litPositions.length), review: !tr.verified };
+      }
+      const o = catalog.optics.find((x) => x.id === end.optic)!;
+      return { label: o.label, sub: `MPO optic · ${o.connector}`, review: !o.verified };
+    }
     if (t.what === 'part') {
       if (end.kind === 'mpoOptic') {
         const o = catalog.optics.find((x) => x.id === end.optic)!;
@@ -55,6 +68,15 @@ export function Builder({ catalog, config, onChange, presets, activePreset, pick
 
   const endCard = (side: Side) => {
     const end = config[side];
+    if (end.kind === 'mpoOptic' && end.panel) {
+      return (
+        <Card title={sideTitle(side)}>
+          <PartButton field="Adapter panel" {...nameOf({ what: 'part', side })} onClick={() => onPicker({ what: 'part', side })} />
+          <PartButton field="MPO patch cord" {...nameOf({ what: 'cord', side })} onClick={() => onPicker({ what: 'cord', side })} />
+          <PartButton field="Plugged into" {...nameOf({ what: 'equipment', side })} onClick={() => onPicker({ what: 'equipment', side })} />
+        </Card>
+      );
+    }
     return (
       <Card title={sideTitle(side)}>
         <PartButton field={end.kind === 'cassette' ? 'Module' : 'Optic'} {...nameOf({ what: 'part', side })} onClick={() => onPicker({ what: 'part', side })} />
@@ -191,6 +213,24 @@ function pickerContent(catalog: Catalog, config: LinkConfig, t: PickerTarget): {
             })),
         })),
         {
+          title: 'MPO adapter panel, with a patch cord to an MPO optic',
+          tiles: (['A', 'B'] as const).map((a) => ({
+            id: PANEL_TILE[a],
+            label: adapterName(a),
+            blurb:
+              a === 'A'
+                ? 'Joins the cable to an MPO patch cord that runs to an MPO optic. Position 1 meets position 1. Works on APC and UPC.'
+                : 'Joins the cable to an MPO patch cord that runs to an MPO optic. Position 1 meets position 12. UPC only: APC angles cannot mate key-up/key-up.',
+            learnMore:
+              a === 'A'
+                ? 'Used in TIA Methods A and C for parallel optics. In Method A, one end needs a Type B patch cord.'
+                : 'Used in TIA Method B for parallel optics, with Type B patch cords and a Type B trunk. Multimode flat polish only.',
+            tag: a === 'A' ? 'TIA Methods A and C' : 'TIA Method B · UPC only',
+            underReview: false,
+            picture: <AdapterMini adapter={a} />,
+          })),
+        },
+        {
           title: 'MPO optics, plugged straight into the cable',
           tiles: pickableMpoOptics(catalog).map((x) => ({
             id: x.id,
@@ -206,6 +246,44 @@ function pickerContent(catalog: Catalog, config: LinkConfig, t: PickerTarget): {
     };
   }
   const end = config[t.side];
+  if (end.kind === 'mpoOptic' && end.panel) {
+    if (t.what === 'cord') {
+      return {
+        title: `${where} MPO patch cord`,
+        groups: [
+          {
+            title: 'MPO patch cords',
+            tiles: panelCordsFor(catalog, end.optic).map((x) => ({
+              id: x.id,
+              label: cordName(x.label),
+              blurb: x.blurb,
+              learnMore: [x.hint, x.learnMore].filter(Boolean).join(' ') || undefined,
+              tag: footprintLabel(x.positions, x.litPositions.length),
+              underReview: !x.verified,
+              picture: <TrunkMini trunk={x} />,
+            })),
+          },
+        ],
+      };
+    }
+    return {
+      title: `What the ${where} patch cord plugs into`,
+      groups: [
+        {
+          title: 'MPO optics',
+          tiles: pickableMpoOptics(catalog).map((x) => ({
+            id: x.id,
+            label: x.label,
+            blurb: x.blurb,
+            learnMore: x.learnMore,
+            tag: `${x.connector} · ${fibreName(x.fibre)}`,
+            underReview: !x.verified,
+            picture: <OpticMini optic={x} />,
+          })),
+        },
+      ],
+    };
+  }
   if (end.kind !== 'cassette') return { title: where, groups: [] };
   if (t.what === 'cord') {
     return {
@@ -357,10 +435,13 @@ function CableCard({
 }
 
 /** Which picker a component drawn on the canvas opens. */
-export function pickerForBox(kind: string, side: Side | undefined): PickerTarget | null {
+export function pickerForBox(kind: string, side: Side | undefined, config?: LinkConfig): PickerTarget | null {
   if (kind === 'trunk' || kind === 'plug') return { what: 'trunk' };
   if (!side) return null;
-  if (kind === 'cord') return { what: 'cord', side };
+  if (kind === 'cord' || kind === 'mpoCord') return { what: 'cord', side };
+  // Behind a panel, the optic is what the patch cord plugs into.
+  const end = config?.[side];
+  if (kind === 'optic' && end?.kind === 'mpoOptic' && end.panel) return { what: 'equipment', side };
   if (kind === 'equipment') return { what: 'equipment', side };
   return { what: 'part', side };
 }

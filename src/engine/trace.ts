@@ -83,6 +83,17 @@ export function trace(link: ResolvedLink, source: Source): FibreTrace {
     if (near.kind !== 'mpoOptic') throw new Error('Optic source needs an optic end');
     hops.push({ at: 'optic', side: source.side, pos: source.pos, ...opticRole(near, source.pos) });
     p = apply(receptacleMap(opticPositions(near)), source.pos);
+    if (near.panel) {
+      // Optic → patch cord (end 1 at the optic) → panel adapter → trunk.
+      const { cord, adapter } = near.panel;
+      hops.push({ at: 'cord', side: source.side, end: 'optic', pos: p });
+      if (!cord.litPositions.includes(p)) {
+        return { hops, arrival: { kind: 'dark', side: source.side, pos: p, in: 'cord' } };
+      }
+      const c = apply(cord.map, p);
+      hops.push({ at: 'cord', side: source.side, end: 'panel', pos: c });
+      p = apply(adapterMap(adapter, cord.positions), c);
+    }
   }
   hops.push({ at: 'trunk', side: source.side, pos: p });
 
@@ -99,6 +110,18 @@ export function trace(link: ResolvedLink, source: Source): FibreTrace {
   const far = link[farSide];
   let arrival: Arrival;
   if (far.kind === 'mpoOptic') {
+    if (far.panel) {
+      // Trunk → panel adapter → patch cord (end 2 at the panel) → optic.
+      const { cord, adapter } = far.panel;
+      const c = apply(invert(adapterMap(adapter, cord.positions)), p);
+      hops.push({ at: 'cord', side: farSide, end: 'panel', pos: c });
+      const q = apply(invert(cord.map), c);
+      if (!cord.litPositions.includes(q)) {
+        return { hops, arrival: { kind: 'dark', side: farSide, pos: c, in: 'cord' } };
+      }
+      hops.push({ at: 'cord', side: farSide, end: 'optic', pos: q });
+      p = q;
+    }
     const pos = apply(invert(receptacleMap(opticPositions(far))), p);
     const role = opticRole(far, pos);
     hops.push({ at: 'optic', side: farSide, pos, ...role });

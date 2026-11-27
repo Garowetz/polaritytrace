@@ -7,7 +7,7 @@ import type { Arrival, Channel, DuplexPos, FibreTrace, Side } from './types';
 function describeArrival(a: Arrival): string {
   switch (a.kind) {
     case 'dark':
-      return `there is no fibre at trunk position ${a.pos}`;
+      return a.in === 'cord' ? `there is no fibre at patch cord position ${a.pos}` : `there is no fibre at trunk position ${a.pos}`;
     case 'unterminated':
       return `cassette MPO position ${a.pos} is not wired to any front port`;
     case 'unpatched':

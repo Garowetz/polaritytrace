@@ -150,6 +150,7 @@ const NAMES: Record<BoxGeom['kind'], string> = {
   adapter: 'cassette',
   trunk: 'MPO cable',
   plug: 'MPO cable',
+  mpoCord: 'MPO patch cord',
 };
 
 function boxHandlers(box: BoxGeom, onBox?: (b: BoxGeom) => void) {
@@ -174,7 +175,7 @@ function boxHandlers(box: BoxGeom, onBox?: (b: BoxGeom) => void) {
 function BoxShape({ box, onBox }: { box: BoxGeom; onBox?: (b: BoxGeom) => void }) {
   return (
     <g className={`${styles.box} ${styles[`box_${box.kind}`]} ${box.underReview ? styles.review : ''} ${onBox ? styles.pickable : ''}`} {...boxHandlers(box, onBox)}>
-      <rect x={box.x} y={box.y} width={box.w} height={box.h} rx={box.kind === 'trunk' ? 14 : box.kind === 'plug' ? 6 : 12} />
+      <rect x={box.x} y={box.y} width={box.w} height={box.h} rx={box.kind === 'trunk' || box.kind === 'mpoCord' ? 14 : box.kind === 'plug' ? 6 : 12} />
     </g>
   );
 }
@@ -267,7 +268,7 @@ function Station({
   const off = 13 * station.labelDir;
   const anchor = vertical ? 'middle' : station.labelDir > 0 ? 'start' : 'end';
   const at = (s: SlotGeom, extra = 0) => (vertical ? { x: s.x, y: s.y + off + Math.sign(off) * extra } : { x: s.x + off + Math.sign(off) * extra, y: s.y });
-  const showNumbers = station.kind === 'trunk' || station.kind === 'optic';
+  const showNumbers = station.kind === 'trunk' || station.kind === 'optic' || station.kind === 'cord';
   const ports = station.kind === 'equipment';
   // Cable position numbers sit just off the fibre so they stay readable.
   const lift = station.kind === 'trunk' && !vertical ? { x: 0, y: -9 } : { x: 0, y: 0 };

@@ -178,10 +178,27 @@ export interface CassetteEnd {
   patchedPorts?: readonly number[];
 }
 
+/** Key-up/key-down ('A') or key-up/key-up ('B') MPO mating adapter (reference §3). */
+export type AdapterType = 'A' | 'B';
+
+/**
+ * An MPO adapter panel and patch cord between an MPO optic and the cable
+ * (reference §8.1 P-ArrA/B/C). The cord reuses a trunk definition.
+ */
+export interface PanelConfig {
+  adapter: AdapterType;
+  /** Trunk id used as the patch cord. Its end 1 is the optic side. */
+  cord: string;
+  /** Cord genders: [optic side, panel side]. Default unpinned at the optic, pinned at the panel. */
+  cordGender?: readonly [Gender, Gender];
+}
+
 export interface OpticEnd {
   kind: 'mpoOptic';
   optic: string;
   fec?: FecMode;
+  /** Optional adapter panel and MPO patch cord between the optic and the cable. */
+  panel?: PanelConfig;
 }
 
 export type EndConfig = CassetteEnd | OpticEnd;
@@ -219,13 +236,15 @@ export type Hop =
   | { at: 'front'; side: Side; port: number; pos: DuplexPos; slot: number }
   | { at: 'internal'; side: Side; pos: number }
   | { at: 'trunk'; side: Side; pos: number }
+  /** MPO patch cord at a panel end: its plug at the optic or at the panel adapter. */
+  | { at: 'cord'; side: Side; end: 'optic' | 'panel'; pos: number }
   | { at: 'optic'; side: Side; pos: number; role: 'tx' | 'rx' | 'unused'; lane?: number };
 
 export type Arrival =
   | { kind: 'equipment'; side: Side; port: number; pos: DuplexPos; role: 'tx' | 'rx'; slot: number }
   | { kind: 'optic'; side: Side; pos: number; role: 'tx' | 'rx' | 'unused'; lane?: number }
-  /** No fibre at this trunk position. */
-  | { kind: 'dark'; side: Side; pos: number }
+  /** No fibre at this trunk (or panel patch cord) position. */
+  | { kind: 'dark'; side: Side; pos: number; in?: 'cord' }
   /** Reaches a cassette MPO position with no front port wired to it. */
   | { kind: 'unterminated'; side: Side; pos: number }
   /** Reaches a front port with nothing patched. */
@@ -258,7 +277,20 @@ export interface Channel {
 
 export type Mode = 'duplex' | 'parallel' | 'breakout';
 
-export type MethodId = 'A' | 'A-modified' | 'B' | 'C' | 'U1' | 'U2' | 'direct-B' | 'breakout-U' | 'direct-A24' | 'breakout-A24';
+export type MethodId =
+  | 'A'
+  | 'A-modified'
+  | 'B'
+  | 'C'
+  | 'U1'
+  | 'U2'
+  | 'direct-B'
+  | 'breakout-U'
+  | 'direct-A24'
+  | 'breakout-A24'
+  | 'array-A'
+  | 'array-B'
+  | 'array-C';
 
 export interface LinkResult {
   verdict: Verdict;

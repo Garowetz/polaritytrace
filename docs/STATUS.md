@@ -1,6 +1,6 @@
 # Status
 
-Updated 2026-11-19. Read this first when starting a new session, then `CLAUDE.md` and `docs/polarity-reference.md`.
+Updated 2026-11-27. Read this first when starting a new session, then `CLAUDE.md` and `docs/polarity-reference.md`.
 
 ## Where we are
 
@@ -53,6 +53,7 @@ Live site: https://garowetz.github.io/polaritytrace/ (branch `main`). Work happe
 
 ## Next steps
 
+0. **MPO adapter panel end** (plan approved 2026-11-27, `docs/plan-mpo-adapter-end.md`): optic → MPO patch cord → adapter → trunk, at either or both ends. Steps 1–4 built (engine, URL, presets, pickers, drawing). Next: parts list and PDF lines for the adapter and cord, then the scope docs. This lifts the "one MPO cable only" rule for this one case.
 1. **Owner review** of the parts list: answer the review points by number. The footer link stays until the owner asks to remove it.
 2. **Custom domain:** get ready for polaritytrace.com (polaritytrace.ca as backup).
 3. **Polarity Maps parser:** draft plain-text part format in `docs/polarity-maps.md` ([Module], [Assembly], [Cord]); parser not built.

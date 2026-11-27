@@ -58,6 +58,13 @@
   stroke: color-mix(in srgb, var(--accent) 55%, transparent);
 }
 
+/* The MPO patch cord at an adapter panel: like the cable, lighter and dashed. */
+.box_mpoCord > rect:first-child {
+  fill: color-mix(in srgb, var(--accent) 9%, transparent);
+  stroke: color-mix(in srgb, var(--accent) 45%, transparent);
+  stroke-dasharray: 5 3;
+}
+
 /* The MPO plug at each end of the cable. */
 .box_plug > rect:first-child {
   fill: color-mix(in srgb, var(--accent) 26%, var(--surface-raised));

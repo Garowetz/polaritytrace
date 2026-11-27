@@ -1,4 +1,4 @@
-import type { CassetteEnd, LinkConfig, OpticEnd } from '../engine/types';
+import type { AdapterType, CassetteEnd, LinkConfig, OpticEnd } from '../engine/types';
 import { GENERIC_PORT } from './optics';
 
 // One-tap starting points. Each preset states what the engine should say about
@@ -25,6 +25,9 @@ export const cassetteEnd = (cassette: string, cord: string, extra: Partial<Casse
 });
 
 export const opticEnd = (optic: string, extra: Partial<OpticEnd> = {}): OpticEnd => ({ kind: 'mpoOptic', optic, ...extra });
+
+/** An MPO optic behind an adapter panel: optic → MPO patch cord → adapter → trunk. */
+export const panelEnd = (optic: string, cord: string, adapter: AdapterType): OpticEnd => opticEnd(optic, { panel: { adapter, cord } });
 
 const SM = { fibre: 'SMF', polish: 'APC' } as const;
 const MM = { fibre: 'MMF', polish: 'UPC' } as const;
@@ -121,6 +124,63 @@ export const presets: readonly Preset[] = [
       right: opticEnd('qsfp28-100g-sr4'),
     },
     expect: 'PASS',
+  },
+  {
+    id: 'array-method-a',
+    label: 'TIA Method A, parallel (adapter panels)',
+    blurb: 'SR4 → Type A patch cord → key-up/key-down panel → Type A trunk → key-up/key-down panel → Type B patch cord → SR4.',
+    config: {
+      left: panelEnd('qsfp28-100g-sr4', 'trunk-a-12', 'A'),
+      cable: { trunk: 'trunk-a-12', ...MM },
+      right: panelEnd('qsfp28-100g-sr4', 'trunk-b-12', 'A'),
+    },
+    expect: 'PASS',
+  },
+  {
+    id: 'mistake-array-type-a-cords',
+    label: 'Common mistake: Type A patch cords at both panels',
+    blurb: 'Method A needs a Type B patch cord at one end. With Type A at both, nothing reverses the lanes, so Tx lands on Tx.',
+    config: {
+      left: panelEnd('qsfp28-100g-sr4', 'trunk-a-12', 'A'),
+      cable: { trunk: 'trunk-a-12', ...MM },
+      right: panelEnd('qsfp28-100g-sr4', 'trunk-a-12', 'A'),
+    },
+    expect: 'FAIL',
+    mistake: true,
+  },
+  {
+    id: 'array-method-b',
+    label: 'TIA Method B, parallel (adapter panels)',
+    blurb: 'Type B patch cords, key-up/key-up panels and a Type B trunk. UPC only.',
+    config: {
+      left: panelEnd('qsfp28-100g-sr4', 'trunk-b-12', 'B'),
+      cable: { trunk: 'trunk-b-12', ...MM },
+      right: panelEnd('qsfp28-100g-sr4', 'trunk-b-12', 'B'),
+    },
+    expect: 'PASS',
+  },
+  {
+    id: 'array-method-c',
+    label: 'TIA Method C, parallel (adapter panels)',
+    blurb: 'Type B patch cord → key-up/key-down panel → Type C trunk → key-up/key-down panel → Type C patch cord.',
+    config: {
+      left: panelEnd('qsfp28-100g-sr4', 'trunk-b-12', 'A'),
+      cable: { trunk: 'trunk-c-12', ...MM },
+      right: panelEnd('qsfp28-100g-sr4', 'trunk-c-12', 'A'),
+    },
+    expect: 'PASS',
+  },
+  {
+    id: 'sr4-panel-breakout',
+    label: '100G SR4 through a panel to 4 × 25G breakout',
+    blurb: 'SR4 → Type A patch cord → key-up/key-down panel → Type B trunk → universal cassette → A-to-A cords → four 25G SR optics.',
+    config: {
+      left: panelEnd('qsfp28-100g-sr4', 'trunk-a-12', 'A'),
+      cable: { trunk: 'trunk-b-12', ...MM },
+      right: cassetteEnd('cas-u1-12', 'lc-aa', { equipment: 'sfp28-25g-sr', patchedPorts: [1, 2, 3, 4] }),
+    },
+    expect: 'PASS',
+    underReview: true,
   },
   {
     id: 'sr4-breakout',

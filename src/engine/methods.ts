@@ -1,5 +1,6 @@
-import type { ResolvedCassetteEnd, ResolvedLink } from './resolve';
-import type { CassetteDef, Issue, MethodId, Mode, Side } from './types';
+import { adapterMap, apply, identity, pairFlipped, reversed } from './maps';
+import type { ResolvedCassetteEnd, ResolvedLink, ResolvedOpticEnd, ResolvedPanel } from './resolve';
+import type { CassetteDef, Issue, MethodId, Mode, PolarityType, PosMap, Side } from './types';
 
 // Recognises which TIA method a link is built as (reference §8.1, TIA FOTC
 // component sets) and adds the method-level warnings: mixed methods and
@@ -12,14 +13,62 @@ const isU2 = (c: CassetteDef) => c.transition === 'U2' && c.rearAdapter === 'B';
 const isStacked = (c: CassetteDef) => c.transition === 'stacked' && c.rearAdapter === 'A';
 const sideName = (s: Side) => (s === 'left' ? 'End A' : 'End B');
 
+const panelOf = (link: ResolvedLink, s: Side): ResolvedPanel | undefined =>
+  link[s].kind === 'mpoOptic' ? (link[s] as ResolvedOpticEnd).panel : undefined;
+
+/**
+ * TIA array methods (reference §8.1 P-ArrA/B/C): an adapter panel and patch
+ * cord at both ends. The parts must match the TIA component sets exactly.
+ */
+function arrayMethod(t: PolarityType, l: ResolvedPanel, r: ResolvedPanel): MethodId | null {
+  const cords = [l.cord.polarity, r.cord.polarity].sort().join('');
+  const adapters = l.adapter + r.adapter;
+  if (t === 'A' && adapters === 'AA' && cords === 'AB') return 'array-A';
+  if (t === 'B' && adapters === 'BB' && cords === 'BB') return 'array-B';
+  if (t === 'C' && adapters === 'AA' && cords === 'BC') return 'array-C';
+  return null;
+}
+
+const same = (a: PosMap, b: PosMap) => a.length === b.length && a.every((x, i) => x === b[i]);
+
+/**
+ * What a patch cord, panel adapter and trunk add up to, seen from the optic,
+ * as a single-row cable type. Null when it matches none (or on MPO-24).
+ */
+function effectiveType(link: ResolvedLink, panel: ResolvedPanel, side: Side): PolarityType | null {
+  const n = link.trunk.positions;
+  if (n > 16 || panel.cord.positions !== n) return null;
+  const trunk = (i: number) => (side === 'left' ? apply(link.trunk.map, i) : link.trunk.map.indexOf(i) + 1);
+  const total = identity(n).map((i) => trunk(apply(adapterMap(panel.adapter, n), apply(panel.cord.map, i))));
+  if (same(total, identity(n))) return 'A';
+  if (same(total, reversed(n))) return 'B';
+  if (same(total, pairFlipped(n))) return 'C';
+  return null;
+}
+
 export function detectMethod(link: ResolvedLink, mode: Mode): MethodId | null {
   const t = link.trunk.polarity;
   // Two-row MPO-24 optics (SR10) pair each lane top over bottom, so the
   // row-swapping Type A 24F cable is the straight-through recipe (reference §6.9).
   const twoRow = link.trunk.positions === 24;
-  if (mode === 'parallel') return t === 'B' ? 'direct-B' : t === 'A' && twoRow ? 'direct-A24' : null;
+  const pl = panelOf(link, 'left');
+  const pr = panelOf(link, 'right');
+  if (mode === 'parallel') {
+    if (pl && pr) return arrayMethod(t, pl, pr);
+    // A panel at one end only is not a TIA set.
+    if (pl || pr) return null;
+    return t === 'B' ? 'direct-B' : t === 'A' && twoRow ? 'direct-A24' : null;
+  }
   if (mode === 'breakout') {
-    const k = (link.left.kind === 'cassette' ? link.left : link.right) as ResolvedCassetteEnd;
+    const kSide: Side = link.left.kind === 'cassette' ? 'left' : 'right';
+    const k = link[kSide] as ResolvedCassetteEnd;
+    const panel = panelOf(link, kSide === 'left' ? 'right' : 'left');
+    // Through a panel, the cord, adapter and trunk together must act as the
+    // Type B cable the universal breakout expects.
+    if (panel) {
+      const eff = effectiveType(link, panel, kSide === 'left' ? 'right' : 'left');
+      return eff === 'B' && (isU1(k.def) || isU2(k.def)) ? 'breakout-U' : null;
+    }
     if (t === 'A' && twoRow && isStacked(k.def)) return 'breakout-A24';
     return t === 'B' && (isU1(k.def) || isU2(k.def)) ? 'breakout-U' : null;
   }
@@ -45,6 +94,9 @@ export const METHOD_NAMES: Record<MethodId, string> = {
   'breakout-U': 'Breakout through a universal cassette',
   'direct-A24': 'Direct parallel link, MPO-24 Type A (rows swap)',
   'breakout-A24': 'Breakout over an MPO-24 Type A cable',
+  'array-A': 'TIA Method A (parallel, adapter panels)',
+  'array-B': 'TIA Method B (parallel, adapter panels)',
+  'array-C': 'TIA Method C (parallel, adapter panels)',
 };
 
 export function methodIssues(link: ResolvedLink, mode: Mode, method: MethodId | null, lightOk: boolean): Issue[] {

@@ -7,7 +7,8 @@ import { cassetteShort, cordShort, opticShort, partsColumns, resultLine, trunkSh
 // no polarity decisions: every fibre path is exactly the engine's hop list.
 
 export type Orientation = 'horizontal' | 'vertical';
-export type StationKey = `${Side}:${Hop['at']}`;
+/** A panel's patch cord has two stations per side: its plug at the optic and at the adapter. */
+export type StationKey = `${Side}:${Hop['at']}` | `${Side}:cord-optic` | `${Side}:cord-panel`;
 
 export interface Point {
   x: number;
@@ -32,7 +33,8 @@ export interface StationGeom {
   kind: Hop['at'];
 }
 
-export type BoxKind = 'equipment' | 'optic' | 'cord' | 'cassette' | 'adapter' | 'trunk' | 'plug';
+/** mpoCord: the MPO patch cord between an optic and an adapter panel. */
+export type BoxKind = 'equipment' | 'optic' | 'cord' | 'cassette' | 'adapter' | 'trunk' | 'plug' | 'mpoCord';
 
 export interface BoxGeom {
   id: string;
@@ -112,7 +114,7 @@ const SUB_LINE = 16;
 const subLines = (sub?: string) => (sub ? sub.split('\n').length : 0);
 // How far each kind of box reaches past the outer fibres. The rear MPO and the
 // cable are a little narrower than the module, so they read as smaller parts.
-const PAD: Record<BoxKind, number> = { equipment: 18, optic: 18, cord: 18, cassette: 24, adapter: 10, trunk: 7, plug: 12 };
+const PAD: Record<BoxKind, number> = { equipment: 18, optic: 18, cord: 18, cassette: 24, adapter: 10, trunk: 7, plug: 12, mpoCord: 7 };
 // The MPO plug at each end of the cable, and the jacket between them.
 const PLUG = 40;
 // Patch cords: each connector body, and how close the two fibres of a duplex
@@ -142,7 +144,8 @@ export function adapterKeys(adapter: PolarityType, inverted: boolean): { module:
 }
 
 const slotKey = (h: Hop) => (h.at === 'equipment' || h.at === 'front' ? `${h.port}${h.pos}` : `${h.pos}`);
-export const slotId = (h: Hop) => `${h.side}:${h.at}|${slotKey(h)}`;
+const stationOf = (h: Hop) => (h.at === 'cord' ? `cord-${h.end}` : h.at);
+export const slotId = (h: Hop) => `${h.side}:${stationOf(h)}|${slotKey(h)}`;
 
 interface RawSlot {
   key: string;
@@ -201,12 +204,13 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
   // 1. Stations along the link. Each end is placed by its distance outward
   //    from its trunk end; dir = −1 on the left, +1 on the right.
   type Raw = { key: StationKey; along: number; slots: RawSlot[]; labelDir: -1 | 1; kind: Hop['at'] };
+  type StationName = Hop['at'] | 'cord-optic' | 'cord-panel';
   type Keys = ReturnType<typeof adapterKeys>;
-  type BoxSpec = { kind: BoxKind; side?: Side; a0: number; a1: number; label: string; sub?: string; underReview: boolean; keys?: Keys };
+  type BoxSpec = { kind: BoxKind; side?: Side; a0: number; a1: number; label: string; sub?: string; underReview: boolean; keys?: Keys; near?: string };
   const endParts = (side: Side) => {
     const end = link[side];
-    const st: { kind: Hop['at']; dist: number; slots: RawSlot[]; labelOut: boolean }[] = [];
-    const bx: { kind: BoxKind; d0: number; d1: number; label: string; sub?: string; underReview: boolean; keys?: Keys }[] = [];
+    const st: { kind: Hop['at']; name?: StationName; dist: number; slots: RawSlot[]; labelOut: boolean }[] = [];
+    const bx: { kind: BoxKind; d0: number; d1: number; label: string; sub?: string; underReview: boolean; keys?: Keys; near?: string }[] = [];
     if (end.kind === 'cassette') {
       const ports = end.def.frontMap.map((f) => f.port);
       const patched = ports.filter((p) => end.patched.has(p));
@@ -257,7 +261,38 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
     } else {
       const n = end.def.mpo?.positions ?? trunk.positions;
       const all = Array.from({ length: n }, (_, i) => i + 1);
-      const dOpt = ALONG.adapter + 20;
+      let dOpt = ALONG.adapter + 20;
+      if (end.panel) {
+        // Adapter panel: trunk plug → adapter → patch cord → optic.
+        const { cord, adapter } = end.panel;
+        const dPanel = ALONG.adapter;
+        const dCordOptic = dPanel + ALONG.cord;
+        dOpt = dCordOptic + ALONG.adapter - 40;
+        st.push(
+          { kind: 'cord', name: 'cord-panel', dist: dPanel, slots: positionSlots(cord.positions, cord.litPositions), labelOut: false },
+          { kind: 'cord', name: 'cord-optic', dist: dCordOptic, slots: positionSlots(cord.positions, cord.litPositions), labelOut: true },
+        );
+        const lit = cord.litPositions.length;
+        bx.push(
+          {
+            kind: 'adapter',
+            d0: TRUNK_OVERHANG + GAP + 10,
+            d1: dPanel - 16,
+            label: adapter === 'B' ? 'Key-up/key-up' : 'Key-up/key-down',
+            underReview: false,
+            keys: adapterKeys(adapter, false),
+            near: 'Cord',
+          },
+          {
+            kind: 'mpoCord',
+            d0: dPanel - 8,
+            d1: dCordOptic + 8,
+            label: cord.label.replace(/trunk/i, 'patch cord'),
+            sub: `MPO patch cord · ${lit === cord.positions ? cord.footprint : `${cord.footprint} · ${lit}F`}`,
+            underReview: !cord.verified,
+          },
+        );
+      }
       st.push({ kind: 'optic', dist: dOpt, slots: positionSlots(n, all, (p) => opticRole(end, p)), labelOut: true });
       bx.push({ kind: 'optic', d0: dOpt - 10, d1: dOpt + 86, label: end.def.label, sub: opticShort(end.def), underReview: !end.def.verified });
     }
@@ -275,9 +310,9 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
   const boxSpecs: BoxSpec[] = [];
   const place = (side: Side, parts: ReturnType<typeof endParts>, anchor: number, dir: -1 | 1) => {
     for (const s of parts.st) {
-      raw.push({ key: `${side}:${s.kind}` as StationKey, along: anchor + dir * s.dist, slots: s.slots, labelDir: (s.labelOut ? dir : -dir) as -1 | 1, kind: s.kind });
+      raw.push({ key: `${side}:${s.name ?? s.kind}` as StationKey, along: anchor + dir * s.dist, slots: s.slots, labelDir: (s.labelOut ? dir : -dir) as -1 | 1, kind: s.kind });
     }
-    for (const b of parts.bx) boxSpecs.push({ kind: b.kind, side, a0: anchor + dir * b.d0, a1: anchor + dir * b.d1, label: b.label, sub: b.sub, underReview: b.underReview, keys: b.keys });
+    for (const b of parts.bx) boxSpecs.push({ kind: b.kind, side, a0: anchor + dir * b.d0, a1: anchor + dir * b.d1, label: b.label, sub: b.sub, underReview: b.underReview, keys: b.keys, near: b.near });
   };
   place('left', L, trunkL, -1);
   const trunkSlots = () => positionSlots(trunk.positions, trunk.litPositions);
@@ -295,7 +330,7 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
   // 2. Across positions: centre every station on the widest one. The rear
   //    MPO and the cable use the tighter pitch.
   const tight = orientation === 'horizontal' ? TIGHT_WIDE : TIGHT;
-  const pitchOf = (s: Raw) => (s.kind === 'internal' || s.kind === 'trunk' ? PITCH * tight : PITCH);
+  const pitchOf = (s: Raw) => (s.kind === 'internal' || s.kind === 'trunk' || s.kind === 'cord' ? PITCH * tight : PITCH);
   const span = (s: Raw) => Math.max(...s.slots.map((x) => x.u)) * pitchOf(s);
   const extent = Math.max(...raw.map(span));
   const tightHalf = Math.max(...raw.filter((s) => pitchOf(s) < PITCH).map(span)) / 2;
@@ -332,7 +367,7 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
     const lo = Math.min(b.a0, b.a1);
     const hi = Math.max(b.a0, b.a1);
     // The rear MPO and the cable are only as wide as their tighter fibres.
-    const half = b.kind === 'adapter' || b.kind === 'trunk' || b.kind === 'plug' ? tightHalf : extent / 2;
+    const half = b.kind === 'adapter' || b.kind === 'trunk' || b.kind === 'plug' || b.kind === 'mpoCord' ? tightHalf : extent / 2;
     const p0 = map(lo, extent / 2 - half - pad);
     const p1 = map(hi, extent / 2 + half + pad);
     const mid = (lo + hi) / 2;
@@ -357,13 +392,13 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
       sub: orientation === 'vertical' && b.kind === 'equipment' ? undefined : b.sub,
       labelAt,
       underReview: b.underReview,
-      notes: b.keys ? keyNotes(b.a1, b.a0, b.keys, pad) : undefined,
+      notes: b.keys ? keyNotes(b.a1, b.a0, b.keys, pad, b.near) : undefined,
     };
   });
 
   // Key notes: one at the module side of the adapter (a1), one at the cable
   // side (a0), each running away from the adapter so they read as two parts.
-  function keyNotes(moduleEdge: number, cableEdge: number, keys: Keys, pad: number): NonNullable<BoxGeom['notes']> {
+  function keyNotes(moduleEdge: number, cableEdge: number, keys: Keys, pad: number, near = 'Module'): NonNullable<BoxGeom['notes']> {
     const towardModule = Math.sign(moduleEdge - cableEdge);
     const note = (edge: number, text: string, away: number) => {
       if (orientation === 'horizontal') {
@@ -381,7 +416,7 @@ export function layoutLink(config: LinkConfig, result: LinkResult, catalog: Cata
       return { x: x0 - 16, y: p.y, text: two, anchor: 'end' as const, tick: [{ x: x0, y: p.y }, { x: x0 - 10, y: p.y }] };
     };
     return [
-      note(moduleEdge, `Module key ${keys.module}`, towardModule),
+      note(moduleEdge, `${near} key ${keys.module}`, towardModule),
       note(cableEdge, `Cable key ${keys.cable}`, -towardModule),
     ];
   }

@@ -269,7 +269,7 @@ export function App() {
                 onPin={(f) => setPinned((cur) => (cur && cur.kind === f.kind && cur.id === f.id ? null : f))}
                 stepHop={stepHop}
                 animate={!reducedMotion}
-                onBox={(b) => setPicker(pickerForBox(b.kind, b.side))}
+                onBox={(b) => setPicker(pickerForBox(b.kind, b.side, config))}
                 sheet={vertical ? 'show' : 'export'}
               />
             </div>

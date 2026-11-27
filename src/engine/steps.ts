@@ -59,6 +59,32 @@ function stepFor(link: ResolvedLink, prev: Hop, cur: Hop, i: number): Step {
   if (prev.at === 'internal' && cur.at === 'trunk') {
     return { hop: i, title: adapterName(cas(prev.side).def.rearAdapter), text: `Cassette MPO position ${prev.pos} meets trunk position ${cur.pos}.` };
   }
+  const panelAdapter = (s: Side) =>
+    opt(s).panel?.adapter === 'B' ? 'Key-up/key-up panel adapter (Type B)' : 'Key-up/key-down panel adapter (Type A)';
+  const cordLabel = (s: Side) => opt(s).panel?.cord.label.replace(/trunk/i, 'cord') ?? 'Patch cord';
+  if (prev.at === 'optic' && cur.at === 'cord') {
+    return {
+      hop: i,
+      title: 'Patch cord plugs into the optic',
+      text: `The two connector faces meet face to face, so optic position ${prev.pos} meets patch cord position ${cur.pos}.`,
+    };
+  }
+  if (prev.at === 'cord' && cur.at === 'cord') {
+    return { hop: i, title: `${Side_(cur.side)} MPO patch cord: ${cordLabel(cur.side)}`, text: `Position ${prev.pos} arrives at position ${cur.pos} at the other end of the cord.` };
+  }
+  if (prev.at === 'cord' && cur.at === 'trunk') {
+    return { hop: i, title: panelAdapter(prev.side), text: `Patch cord position ${prev.pos} meets trunk position ${cur.pos}.` };
+  }
+  if (prev.at === 'trunk' && cur.at === 'cord') {
+    return { hop: i, title: panelAdapter(cur.side), text: `Trunk position ${prev.pos} meets patch cord position ${cur.pos}.` };
+  }
+  if (prev.at === 'cord' && cur.at === 'optic') {
+    return {
+      hop: i,
+      title: `Patch cord plugs into the ${opt(cur.side).def.label}`,
+      text: `Patch cord position ${prev.pos} meets optic position ${cur.pos}: ${roleText(cur.role, cur.lane)}.`,
+    };
+  }
   if (prev.at === 'optic' && cur.at === 'trunk') {
     return {
       hop: i,

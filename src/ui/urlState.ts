@@ -1,4 +1,4 @@
-import type { CableConfig, CassetteEnd, Catalog, EndConfig, FecMode, LinkConfig } from '../engine';
+import type { CableConfig, CassetteEnd, Catalog, EndConfig, FecMode, LinkConfig, OpticEnd } from '../engine';
 import { evaluateLink } from '../engine';
 import { GENERIC_PORT } from '../data/optics';
 import type { Preset } from '../data/presets';
@@ -6,6 +6,8 @@ import type { Preset } from '../data/presets';
 // The whole link lives in the query string so a link can be shared.
 //   ?p=method-a                                   a preset, unchanged
 //   ?a=cas-a-12~lc-ab&t=trunk-a-12~SMF~APC&b=…    anything else
+//   b=qsfp28-100g-sr4~pn:A:trunk-b-12             an MPO optic behind an adapter
+//                                                  panel (adapter type, then patch cord)
 // Each part is ~-separated tokens: the part id first (then the cord for a
 // cassette), then only the options that differ from the defaults. Ids can
 // contain dots, so ~ is the separator. Anything unreadable gives null and the
@@ -17,7 +19,12 @@ const FECS: readonly FecMode[] = ['none', 'BASE-R', 'RS', 'KP4'];
 const has = <T extends string>(list: readonly T[], v: string): v is T => (list as readonly string[]).includes(v);
 
 function encodeEnd(end: EndConfig): string {
-  if (end.kind === 'mpoOptic') return [end.optic, end.fec && `fec:${end.fec}`].filter(Boolean).join('~');
+  if (end.kind === 'mpoOptic') {
+    const p = end.panel;
+    return [end.optic, end.fec && `fec:${end.fec}`, p && `pn:${p.adapter}:${p.cord}`, p?.cordGender && `pg:${p.cordGender.join('')}`]
+      .filter(Boolean)
+      .join('~');
+  }
   const t: (string | undefined | false)[] = [end.cassette, end.cord];
   if (end.mount === 'inverted') t.push('inv');
   if (end.frontOrientation === 'B-A') t.push('BA');
@@ -37,9 +44,20 @@ function encodeCable(c: CableConfig): string {
 function decodeEnd(s: string, catalog: Catalog): EndConfig | null {
   const [id, ...rest] = s.split('~');
   if (catalog.optics.some((o) => o.id === id && o.mpo)) {
-    if (rest.length === 0) return { kind: 'mpoOptic', optic: id };
-    const fec = rest.length === 1 && rest[0].startsWith('fec:') ? rest[0].slice(4) : '';
-    return has(FECS, fec) ? { kind: 'mpoOptic', optic: id, fec } : null;
+    const end: OpticEnd = { kind: 'mpoOptic', optic: id };
+    let gender: [ 'M' | 'F', 'M' | 'F'] | undefined;
+    for (const o of rest) {
+      const [k, v = ''] = o.split(/:(.*)/s);
+      if (k === 'fec' && has(FECS, v)) end.fec = v;
+      else if (k === 'pn' && /^[AB]:.+$/.test(v)) end.panel = { adapter: v[0] as 'A' | 'B', cord: v.slice(2) };
+      else if (k === 'pg' && /^[MF]{2}$/.test(v)) gender = [v[0] as 'M' | 'F', v[1] as 'M' | 'F'];
+      else return null;
+    }
+    if (gender) {
+      if (!end.panel) return null;
+      end.panel.cordGender = gender;
+    }
+    return end;
   }
   const [cord, ...opts] = rest;
   if (!cord) return null;

@@ -21,6 +21,7 @@ function underReview(link: ResolvedLink): LinkResult['underReview'] {
       for (const p of end.patched) parts.push(end.cordFor(p));
     } else {
       parts.push(end.def);
+      if (end.panel) parts.push(end.panel.cord);
     }
   }
   const seen = new Map<string, LinkResult['underReview'][number]>();

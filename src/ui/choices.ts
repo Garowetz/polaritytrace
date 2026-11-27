@@ -1,6 +1,6 @@
 import { GENERIC_PORT } from '../data/optics';
 import { cassetteEnd, opticEnd } from '../data/presets';
-import { NO_EQUIPMENT, type CassetteEnd, type Catalog, type EndConfig, type Fibre, type LinkConfig, type Side } from '../engine';
+import { NO_EQUIPMENT, type AdapterType, type CassetteEnd, type Catalog, type EndConfig, type Fibre, type LinkConfig, type OpticEnd, type Side } from '../engine';
 
 // What each picker offers, and how a choice changes the link. No polarity
 // decisions here: the engine judges whatever the person builds.
@@ -14,6 +14,44 @@ export const pickableMpoOptics = (c: Catalog) => c.optics.filter((o) => o.inV1 &
 export const pickableEquipment = (c: Catalog) => c.optics.filter((o) => o.inV1 && !o.mpo);
 
 const equipmentConnector = (c: Catalog, id: string) => c.optics.find((o) => o.id === id)?.connector ?? 'LC';
+
+/** Tile ids for the two adapter panels in the End picker. */
+export const PANEL_TILE: Record<AdapterType, string> = { A: 'panel:A', B: 'panel:B' };
+const panelAdapter = (id: string): AdapterType | null => (id === PANEL_TILE.A ? 'A' : id === PANEL_TILE.B ? 'B' : null);
+
+/** MPO patch cords that fit this optic: cable definitions of the optic's footprint. */
+export function panelCordsFor(c: Catalog, optic: string) {
+  const fp = equipmentConnector(c, optic);
+  return c.trunks.filter((t) => t.footprint === fp);
+}
+
+/**
+ * Keep the patch cord if it fits the optic, else one of the same type (Type A
+ * for a new panel, owner's choice 2026-11-27), at the trunk's fibre count when
+ * it can be.
+ */
+export function fitPanelCord(c: Catalog, current: string | undefined, optic: string, trunk: string): string {
+  const fits = panelCordsFor(c, optic);
+  const was = c.trunks.find((t) => t.id === current);
+  if (was && fits.includes(was)) return was.id;
+  const polarity = was?.polarity ?? 'A';
+  const cable = c.trunks.find((t) => t.id === trunk);
+  const lit = was?.litPositions.length ?? cable?.litPositions.length;
+  const same = fits.filter((t) => t.polarity === polarity);
+  return (same.find((t) => t.litPositions.length === lit) ?? same[0] ?? fits[0])?.id ?? 'trunk-a-12';
+}
+
+/** An MPO optic that fits the cable, for a panel chosen in place of a module. */
+function opticForCable(c: Catalog, config: LinkConfig): string {
+  const trunk = c.trunks.find((t) => t.id === config.cable.trunk);
+  const fibre = config.cable.fibre ?? 'SMF';
+  const optics = pickableMpoOptics(c);
+  return (
+    optics.find((o) => o.connector === trunk?.footprint && o.fibre === fibre) ??
+    optics.find((o) => o.connector === trunk?.footprint) ??
+    optics[0]
+  ).id;
+}
 
 /** Cords whose ends fit this cassette front and this equipment. */
 export function cordsFor(c: Catalog, cassette: string, equipment: string) {
@@ -46,13 +84,29 @@ function withEnd(c: Catalog, config: LinkConfig, side: Side, end: EndConfig): Li
 export function selectedId(config: LinkConfig, t: PickerTarget): string {
   if (t.what === 'trunk') return config.cable.trunk;
   const end = config[t.side];
-  if (t.what === 'part') return end.kind === 'cassette' ? end.cassette : end.optic;
-  return end.kind === 'cassette' ? (t.what === 'cord' ? end.cord : end.equipment) : '';
+  if (t.what === 'part') return end.kind === 'cassette' ? end.cassette : end.panel ? PANEL_TILE[end.panel.adapter] : end.optic;
+  if (end.kind === 'mpoOptic') return end.panel ? (t.what === 'cord' ? end.panel.cord : end.optic) : '';
+  return t.what === 'cord' ? end.cord : end.equipment;
 }
 
 export function applyChoice(c: Catalog, config: LinkConfig, t: PickerTarget, id: string): LinkConfig {
   if (t.what === 'trunk') return { ...config, cable: { ...config.cable, trunk: id } };
   const end = config[t.side];
+  const adapter = panelAdapter(id);
+  if (t.what === 'part' && adapter) {
+    // An adapter panel: keep the optic and patch cord if there already are some.
+    const optic = end.kind === 'mpoOptic' ? end.optic : opticForCable(c, config);
+    const cord = fitPanelCord(c, end.kind === 'mpoOptic' ? end.panel?.cord : undefined, optic, config.cable.trunk);
+    const keep: Partial<OpticEnd> = end.kind === 'mpoOptic' && end.fec ? { fec: end.fec } : {};
+    const gender = end.kind === 'mpoOptic' && end.panel?.cordGender ? { cordGender: end.panel.cordGender } : {};
+    return withEnd(c, config, t.side, opticEnd(optic, { ...keep, panel: { adapter, cord, ...gender } }));
+  }
+  if (end.kind === 'mpoOptic' && end.panel && t.what !== 'part') {
+    if (t.what === 'cord') return { ...config, [t.side]: { ...end, panel: { ...end.panel, cord: id } } };
+    // A new optic behind the panel: the patch cord follows its footprint.
+    const panel = { ...end.panel, cord: fitPanelCord(c, end.panel.cord, id, config.cable.trunk) };
+    return withEnd(c, config, t.side, opticEnd(id, { panel }));
+  }
   if (t.what === 'part') {
     if (c.optics.some((o) => o.id === id)) return withEnd(c, config, t.side, opticEnd(id));
     const prev: Partial<CassetteEnd> = end.kind === 'cassette' ? end : {};

@@ -91,6 +91,29 @@ export function OpticMini({ optic }: { optic: OpticDef }) {
   );
 }
 
+/** An MPO mating adapter: patch cord plug on top, trunk plug below. */
+export function AdapterMini({ adapter }: { adapter: 'A' | 'B' }) {
+  const n = 12;
+  const x = xs(n, 16);
+  const to = (p: number) => (adapter === 'B' ? n + 1 - p : p);
+  return (
+    <Frame label={adapter === 'B' ? 'Key-up/key-up adapter: position 1 meets 12' : 'Key-up/key-down adapter: position 1 meets 1'}>
+      <rect x={10} y={H / 2 - 5} width={W - 20} height={10} rx={3} className={styles.port} />
+      {Array.from({ length: n }, (_, i) => (
+        <line key={i} x1={x(i + 1)} y1={Y0} x2={x(to(i + 1))} y2={Y1} stroke={fibreColour(i + 1, n).hex} className={styles.wire} />
+      ))}
+      {Array.from({ length: n }, (_, i) => (
+        <g key={i}>
+          <Dot x={x(i + 1)} y={Y0} />
+          <Dot x={x(i + 1)} y={Y1} />
+        </g>
+      ))}
+      <text x={W - 2} y={Y0 + 3} textAnchor="end" className={styles.miniText}>↑</text>
+      <text x={W - 2} y={Y1 + 3} textAnchor="end" className={styles.miniText}>{adapter === 'B' ? '↑' : '↓'}</text>
+    </Frame>
+  );
+}
+
 /** Plugged into nothing: an empty module front. */
 export function NoneMini() {
   return (
